@@ -1,0 +1,19 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- script: |
+    pip install -r scripts/requirements.txt
+    python scripts/parse_csv.py input.csv terraform.tfvars
+  displayName: "Parse CSV and generate tfvars"
+
+- script: |
+    terraform init
+    terraform plan
+  displayName: "Terraform Plan"
+
+- script: terraform apply -auto-approve
+  displayName: "Terraform Apply"

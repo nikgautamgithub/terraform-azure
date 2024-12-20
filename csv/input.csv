@@ -1,0 +1,4 @@
+type,subscription_name,name,resource_group,os_type,vm_size
+vm,sub_1,myLinuxVM,rg-demo,Linux,Standard_B2s
+vm,sub_2,myWindowsVM,rg-demo,Windows,Standard_B2s
+# Add rows for other resources like AKS, Storage Account, etc.
