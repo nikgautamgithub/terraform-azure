@@ -1,59 +1,61 @@
-terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~>3.0"
-    }
-  }
+provider "azurerm" {
+  alias           = "module_provider"
+  subscription_id = var.subscription_id
+  features {}
 }
 
-resource "azurerm_linux_virtual_machine" "vm" {
+resource "azurerm_linux_virtual_machine" "linux_vm" {
   count               = var.os_type == "Linux" ? 1 : 0
-  name                = var.name
-  resource_group_name = var.resource_group
+  name                = var.vm_name
   location            = var.location
+  resource_group_name = var.resource_group_name
   size                = var.vm_size
+  admin_username      = var.admin_username
+  admin_password      = var.admin_password
 
-  admin_username = "adminuser"
-  admin_password = "replace-with-your-password" # Consider using a more secure method like Key Vault or SSH keys
-
-  network_interface_ids = [azurerm_network_interface.example.id] # Ensure this is defined or passed as a variable
+  network_interface_ids = [var.nic_names]
 
   os_disk {
     caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
+    storage_account_type = var.os_disk_type
   }
 
   source_image_reference {
-    publisher = "Canonical"
-    offer     = "UbuntuServer"
-    sku       = "20_04-lts"
+    publisher = split(":", var.os_disk_image)[0]
+    offer     = split(":", var.os_disk_image)[1]
+    sku       = split(":", var.os_disk_image)[2]
     version   = "latest"
+  }
+
+  lifecycle {
+    prevent_destroy = true
   }
 }
 
-
-resource "azurerm_windows_virtual_machine" "vm" {
+resource "azurerm_windows_virtual_machine" "windows_vm" {
   count               = var.os_type == "Windows" ? 1 : 0
-  name                = var.name
-  resource_group_name = var.resource_group
+  name                = var.vm_name
   location            = var.location
+  resource_group_name = var.resource_group_name
   size                = var.vm_size
+  admin_username      = var.admin_username
+  admin_password      = var.admin_password
 
-  admin_username = "adminuser"
-  admin_password = "replace-with-your-password" # Consider using a more secure method like Key Vault
-
-  network_interface_ids = [azurerm_network_interface.example.id] # Ensure this is defined or passed as a variable
+  network_interface_ids = [var.nic_names]
 
   os_disk {
     caching              = "ReadWrite"
-    storage_account_type = "Standard_LRS"
+    storage_account_type = var.os_disk_type
   }
 
   source_image_reference {
-    publisher = "MicrosoftWindowsServer"
-    offer     = "WindowsServer"
-    sku       = "2019-Datacenter"
+    publisher = split("/", var.os_disk_image)[0]
+    offer     = split("/", var.os_disk_image)[1]
+    sku       = split("/", var.os_disk_image)[2]
     version   = "latest"
+  }
+
+  lifecycle {
+    prevent_destroy = true
   }
 }

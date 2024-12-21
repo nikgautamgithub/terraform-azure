@@ -1,21 +1,23 @@
-variable "subscription_1_id" {
-  type        = string
-  description = "Subscription ID for environment 1"
-}
-
-variable "subscription_2_id" {
-  type        = string
-  description = "Subscription ID for environment 2"
-}
-
 variable "resource_definitions" {
-  type        = list(map(string))
-  description = "List of maps containing resource definitions from CSV"
+  type = list(object({
+    subscription_id     = string
+    vm_name             = string
+    resource_group_name = string
+    location            = string
+    vm_size             = string
+    os_type             = string
+    os_disk_image       = string
+    os_disk_type        = string
+    zones               = optional(list(string))
+    nsg_names           = string
+    vnet_names          = string
+    subnet_names        = string
+    nic_names           = string
+    allowed_ports       = optional(list(string))
+    public_ip_required  = bool
+    data_disks          = optional(list(number))
+    disk_types          = optional(list(string))
+    admin_username      = string
+    admin_password      = string
+  }))
 }
-
-variable "location" {
-  type        = string
-  default     = "eastus"
-}
-
-# Add more global variables as needed

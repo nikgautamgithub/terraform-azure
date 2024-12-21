@@ -1,31 +1,38 @@
 import csv
 import sys
 
-# Usage: python parse_csv.py input.csv terraform.tfvars
+def parse_csv(input_csv, output_tfvars):
+    resources = []
+    with open(input_csv, 'r') as f, open(output_tfvars, 'w') as tfvars_file:
+        reader = csv.DictReader(f)
+        for row in reader:
+            resource = {key: value for key, value in row.items()}
+            # Convert list-like fields to actual lists
+            if "data_disks" in resource:
+                resource["data_disks"] = [int(size) for size in resource["data_disks"].split(";")]
+            if "disk_types" in resource:
+                resource["disk_types"] = resource["disk_types"].split(";")
+            if "allowed_ports" in resource and resource["allowed_ports"]:
+                resource["allowed_ports"] = resource["allowed_ports"].split(";")
+            else:
+                resource["allowed_ports"] = []
+            resources.append(resource)
 
-input_file = sys.argv[1]
-output_file = sys.argv[2]
+        # Write Terraform-compatible variables
+        tfvars_file.write("resource_definitions = [\n")
+        for resource in resources:
+            tfvars_file.write("  {\n")
+            for key, value in resource.items():
+                if isinstance(value, list):
+                    tfvars_file.write(f'    {key} = {value},\n')
+                else:
+                    tfvars_file.write(f'    {key} = "{value}",\n')
+            tfvars_file.write("  },\n")
+        tfvars_file.write("]\n")
 
-resources = []
+if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print("Usage: python parse_csv.py <input_csv> <output_tfvars>")
+        sys.exit(1)
 
-with open(input_file, 'r') as f:
-    reader = csv.DictReader(f)
-    for row in reader:
-        # Assuming CSV columns: type, subscription_name, name, resource_group, os_type, vm_size, ...
-        resources.append({
-            "type": row.get("type"),
-            "subscription_name": row.get("subscription_name"),
-            "name": row.get("name"),
-            "os_type": row.get("os_type"),
-            "vm_size": row.get("vm_size"),
-            "resource_group": row.get("resource_group"),
-        })
-
-with open(output_file, 'w') as f:
-    f.write('resource_definitions = [\n')
-    for r in resources:
-        f.write('  {\n')
-        for k,v in r.items():
-            f.write(f'    {k} = "{v}"\n')
-        f.write('  },\n')
-    f.write(']\n')
+    parse_csv(sys.argv[1], sys.argv[2])
