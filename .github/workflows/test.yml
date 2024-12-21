@@ -1,0 +1,68 @@
+name: Terraform CSV Processing Workflow
+
+on:
+  workflow_dispatch:
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+
+    env:
+      CSV_DIR: './csv'
+      TFVARS_FILE: 'terraform.tfvars'
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v3
+
+    - name: Detect Uploaded CSV Files
+      run: |
+        echo "Checking for uploaded CSV files in $CSV_DIR..."
+        CSV_FILES=$(ls $CSV_DIR | grep .csv || true)
+        if [ -z "$CSV_FILES" ]; then
+          echo "Error: No CSV files found in $CSV_DIR. Please upload CSV files."
+          exit 1
+        fi
+        echo "Found CSV files:"
+        echo "$CSV_FILES"
+        echo "$CSV_FILES" > csv_list.txt
+
+    - name: Process Each CSV File
+      run: |
+        while IFS= read -r CSV_FILE; do
+          echo "Processing $CSV_FILE..."
+          RESOURCE_TYPE=$(echo $CSV_FILE | cut -d'.' -f1) # Extract resource type from filename
+          echo "Detected resource type: $RESOURCE_TYPE"
+
+          case $RESOURCE_TYPE in
+            vm)
+              echo "Parsing VM CSV..."
+              python scripts/parse_vm_csv.py $CSV_DIR/$CSV_FILE $TFVARS_FILE
+              ;;
+            aks)
+              echo "Parsing AKS CSV..."
+              python scripts/parse_aks_csv.py $CSV_DIR/$CSV_FILE $TFVARS_FILE
+              ;;
+            storage_account)
+              echo "Parsing Storage Account CSV..."
+              python scripts/parse_storage_csv.py $CSV_DIR/$CSV_FILE $TFVARS_FILE
+              ;;
+            *)
+              echo "Error: Unsupported resource type: $RESOURCE_TYPE"
+              exit 1
+              ;;
+          esac
+
+          echo "Running Terraform for $RESOURCE_TYPE..."
+          terraform init
+          terraform plan -var-file=$TFVARS_FILE -out=tfplan
+          terraform apply -auto-approve tfplan
+
+          echo "Cleaning up for $CSV_FILE..."
+          rm -f $TFVARS_FILE
+        done < csv_list.txt
+
+    - name: Cleanup Temporary Files
+      run: |
+        echo "Cleanup: Removing temporary files..."
+        rm -f csv_list.txt

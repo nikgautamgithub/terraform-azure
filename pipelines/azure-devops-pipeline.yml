@@ -1,19 +1,62 @@
 trigger:
-- main
+  - main
 
 pool:
   vmImage: 'ubuntu-latest'
 
+variables:
+  CSV_DIR: './csv'
+  TFVARS_FILE: 'terraform.tfvars'
+
 steps:
 - script: |
-    pip install -r scripts/requirements.txt
-    python scripts/parse_csv.py input.csv terraform.tfvars
-  displayName: "Parse CSV and generate tfvars"
+    echo "Checking for uploaded CSV files in $CSV_DIR..."
+    CSV_FILES=$(ls $CSV_DIR | grep .csv)
+    if [ -z "$CSV_FILES" ]; then
+      echo "Error: No CSV files found in $CSV_DIR. Please upload CSV files."
+      exit 1
+    fi
+    echo "Found CSV files:"
+    echo "$CSV_FILES"
+    echo "$CSV_FILES" > csv_list.txt
+  displayName: "Detect Uploaded CSV Files"
 
 - script: |
-    terraform init
-    terraform plan
-  displayName: "Terraform Plan"
+    while IFS= read -r CSV_FILE; do
+      echo "Processing $CSV_FILE..."
+      RESOURCE_TYPE=$(echo $CSV_FILE | cut -d'.' -f1) # Extract resource type from filename
+      echo "Detected resource type: $RESOURCE_TYPE"
 
-- script: terraform apply -auto-approve
-  displayName: "Terraform Apply"
+      case $RESOURCE_TYPE in
+        vm)
+          echo "Parsing VM CSV..."
+          python scripts/parse_vm_csv.py $CSV_DIR/$CSV_FILE $TFVARS_FILE
+          ;;
+        aks)
+          echo "Parsing AKS CSV..."
+          python scripts/parse_aks_csv.py $CSV_DIR/$CSV_FILE $TFVARS_FILE
+          ;;
+        storage_account)
+          echo "Parsing Storage Account CSV..."
+          python scripts/parse_storage_csv.py $CSV_DIR/$CSV_FILE $TFVARS_FILE
+          ;;
+        *)
+          echo "Error: Unsupported resource type: $RESOURCE_TYPE"
+          exit 1
+          ;;
+      esac
+
+      echo "Running Terraform for $RESOURCE_TYPE..."
+      terraform init
+      terraform plan -var-file=$TFVARS_FILE -out=tfplan
+      terraform apply -auto-approve tfplan
+
+      echo "Cleaning up for $CSV_FILE..."
+      rm -f $TFVARS_FILE
+    done < csv_list.txt
+  displayName: "Process Each CSV File"
+
+- script: |
+    echo "Cleanup: Removing temporary files..."
+    rm -f csv_list.txt
+  displayName: "Cleanup Temporary Files"

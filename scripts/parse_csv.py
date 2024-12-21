@@ -11,21 +11,17 @@ resources = []
 with open(input_file, 'r') as f:
     reader = csv.DictReader(f)
     for row in reader:
-        # Assuming CSV columns: type, subscription_name, name, resource_group, os_type, vm_size, ...
-        resources.append({
-            "type": row.get("type"),
-            "subscription_name": row.get("subscription_name"),
-            "name": row.get("name"),
-            "os_type": row.get("os_type"),
-            "vm_size": row.get("vm_size"),
-            "resource_group": row.get("resource_group"),
-        })
+        # Dynamically handle all keys in the CSV row
+        resource = {key: value for key, value in row.items()}
+        resources.append(resource)
 
 with open(output_file, 'w') as f:
     f.write('resource_definitions = [\n')
-    for r in resources:
+    for resource in resources:
         f.write('  {\n')
-        for k,v in r.items():
-            f.write(f'    {k} = "{v}"\n')
+        for key, value in resource.items():
+            f.write(f'    {key} = "{value}",\n')
         f.write('  },\n')
     f.write(']\n')
+
+print(f"Successfully parsed {len(resources)} resources from {input_file} into {output_file}.")
