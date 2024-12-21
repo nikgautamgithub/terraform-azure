@@ -1,22 +1,44 @@
-# subscription_1_id = "00000000-0000-0000-0000-000000000000"
-# subscription_2_id = "11111111-1111-1111-1111-111111111111"
-
 resource_definitions = [
   {
-    type              = "vm"
-    subscription_name = "sub_1"           # Matches provider alias
-    name              = "myLinuxVM"
-    os_type           = "Linux"
-    vm_size           = "Standard_B2s"
-    resource_group    = "rg-demo"
+    subscription_id = "11111111-aaaa-1111-aaaa-111111111111",
+    vm_name = "myLinuxVM1",
+    resource_group_name = "rg1",
+    os_type = "Linux",
+    os_disk_image = "Canonical:UbuntuServer:20_04-lts",
+    os_disk_type = "Standard SSD",
+    vm_size = "Standard_B2s",
+    location = "eastus",
+    zones = "1",
+    nsg_names = "my-nsg1",
+    vnet_names = "my-vnet1",
+    nic_names = "my-nic1",
+    subnet_names = "my-subnet1",
+    allowed_ports = ["80", "22"],
+    public_ip_required = "true",
+    data_disks = ["64", "128"],
+    disk_types = ["Standard_LRS", "Premium_LRS"],
+    admin_username = "adminuser",
+    admin_password = "password123",
   },
   {
-    type              = "vm"
-    subscription_name = "sub_2"
-    name              = "myWindowsVM"
-    os_type           = "Windows"
-    vm_size           = "Standard_B2s"
-    resource_group    = "rg-demo"
+    subscription_id = "22222222-bbbb-2222-bbbb-222222222222",
+    vm_name = "myWindowsVM1",
+    resource_group_name = "rg2",
+    os_type = "Windows",
+    os_disk_image = "ImageGallery/Custom_Windows_Server_2022",
+    os_disk_type = "Premium SSD",
+    vm_size = "Standard_D2s_v3",
+    location = "westus",
+    zones = "2",
+    nsg_names = "my-nsg2",
+    vnet_names = "my-vnet2",
+    nic_names = "my-nic2",
+    subnet_names = "my-subnet2",
+    allowed_ports = "3389",
+    public_ip_required = "false",
+    data_disks = ["128", "256"],
+    disk_types = ["Premium_LRS", "Premium_LRS"],
+    admin_username = "adminuser",
+    admin_password = "password123",
   },
-  # Add entries for AKS, Storage Accounts, etc.
 ]
