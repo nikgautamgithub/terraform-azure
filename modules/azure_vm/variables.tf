@@ -1,7 +1,3 @@
-variable "subscription_id" {
-  type = string
-}
-
 variable "vm_name" {
   type = string
 }
@@ -31,8 +27,9 @@ variable "os_disk_type" {
 }
 
 variable "zones" {
-  type    = list(string)
-  default = []
+  description = "Availability zone for the VM"
+  type        = list(string)
+  default     = []
 }
 
 variable "nsg_names" {
@@ -48,11 +45,12 @@ variable "subnet_names" {
 }
 
 variable "nic_names" {
-  type = string
+  type = list(string)
 }
 
 variable "allowed_ports" {
-  type = list(string)
+  type    = list(string)
+  default = []
 }
 
 variable "public_ip_required" {
