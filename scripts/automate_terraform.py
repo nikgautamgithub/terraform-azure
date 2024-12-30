@@ -3,6 +3,7 @@ import shutil
 import subprocess
 import sys
 from datetime import datetime
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Constants
 CSV_PARSE_SCRIPT = "scripts/parse_csv.py"
@@ -15,13 +16,29 @@ def log(message):
     print(f"[{timestamp}] {message}")
 
 def run_command(command, error_message):
-    """Run a system command and handle errors."""
+    """
+    Run a system command and handle errors.
+    Return the (stdout, stderr) as a tuple so we can log or handle them.
+    """
     try:
-        result = subprocess.run(command, shell=True, check=True, text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        log(result.stdout.strip())
+        result = subprocess.run(
+            command,
+            shell=True,
+            check=True,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE
+        )
+        stdout = result.stdout.strip()
+        stderr = result.stderr.strip()
+        if stdout:
+            log(stdout)
+        return (stdout, stderr)
     except subprocess.CalledProcessError as e:
         log(f"{error_message}\n{e.stderr.strip()}")
-        sys.exit(1)
+        # We raise here instead of sys.exit(1) so that a single failed workspace
+        # doesn't necessarily kill the entire process (depends on your preference).
+        raise
 
 def clear_output_folder():
     """Clear the output folder before generating new files."""
@@ -48,38 +65,81 @@ def generate_tfvars():
     clear_output_folder()
 
     log("Running the Python script to generate .tfvars files...")
-    run_command(f"python3 {CSV_PARSE_SCRIPT} {INPUT_FOLDER} {OUTPUT_FOLDER}", "Failed to generate .tfvars files.")
+    try:
+        run_command(
+            f"python3 {CSV_PARSE_SCRIPT} {INPUT_FOLDER} {OUTPUT_FOLDER}",
+            "Failed to generate .tfvars files."
+        )
+    except Exception:
+        sys.exit(1)
 
 def initialize_terraform():
-    """Initialize Terraform."""
+    """Initialize Terraform in the current directory."""
     log("Initializing Terraform...")
-    run_command("terraform init", "Terraform initialization failed.")
+    try:
+        run_command("terraform init", "Terraform initialization failed.")
+    except Exception:
+        sys.exit(1)
 
-def process_tfvars():
-    """Process each .tfvars file."""
+def process_single_tfvars_file(tfvars_file):
+    """
+    Process a single .tfvars file:
+      1. Create or select the workspace
+      2. Run 'terraform plan'
+      3. Run 'terraform apply'
+    """
+    workspace_name = os.path.splitext(tfvars_file)[0]
+    tfvars_path = os.path.join(OUTPUT_FOLDER, tfvars_file)
+
+    log(f"[{workspace_name}] Creating or selecting Terraform workspace...")
+    # We use '||' to handle the case where the workspace already exists:
+    # if 'workspace new' fails, we try 'select'
+    run_command(
+        f"terraform workspace new {workspace_name} || terraform workspace select {workspace_name}",
+        f"Failed to create or select workspace {workspace_name}."
+    )
+
+    # Run terraform plan
+    log(f"[{workspace_name}] Running Terraform plan...")
+    run_command(
+        f"terraform plan -var-file={tfvars_path}",
+        f"Terraform plan failed for workspace {workspace_name}."
+    )
+
+    # Run terraform apply
+    log(f"[{workspace_name}] Running Terraform apply...")
+    run_command(
+        f"terraform apply -var-file={tfvars_path} -auto-approve",
+        f"Terraform apply failed for workspace {workspace_name}."
+    )
+
+def process_tfvars_in_parallel(max_workers=4):
+    """
+    Process each .tfvars file in parallel using a ThreadPoolExecutor.
+    Adjust max_workers as needed.
+    """
     tfvars_files = [f for f in os.listdir(OUTPUT_FOLDER) if f.endswith(".tfvars")]
     if not tfvars_files:
         log("No .tfvars files found in the output folder.")
         sys.exit(1)
 
-    for tfvars_file in tfvars_files:
-        workspace_name = os.path.splitext(tfvars_file)[0]
-        tfvars_path = os.path.join(OUTPUT_FOLDER, tfvars_file)
+    # Use a ThreadPoolExecutor to process files concurrently
+    log(f"Starting parallel processing with up to {max_workers} workers...")
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        future_to_file = {
+            executor.submit(process_single_tfvars_file, tfvars_file): tfvars_file
+            for tfvars_file in tfvars_files
+        }
 
-        # Create workspace
-        log(f"Creating or selecting Terraform workspace: {workspace_name}...")
-        run_command(f"terraform workspace new {workspace_name} || terraform workspace select {workspace_name}",
-                    f"Failed to create or select workspace {workspace_name}.")
+        # Iterate over tasks as they complete
+        for future in as_completed(future_to_file):
+            tfvars_file = future_to_file[future]
+            try:
+                future.result()  # will raise an exception if any occurred
+            except Exception as e:
+                log(f"[{tfvars_file}] Error in processing: {str(e)}")
 
-        # Run terraform plan
-        log(f"Running Terraform plan for workspace: {workspace_name}...")
-        run_command(f"terraform plan -var-file={tfvars_path}", f"Terraform plan failed for workspace {workspace_name}.")
-
-        # Run terraform apply
-        log(f"Running Terraform apply for workspace: {workspace_name}...")
-        run_command(f"terraform apply -var-file={tfvars_path} -auto-approve", f"Terraform apply failed for workspace {workspace_name}.")
-
-if __name__ == "__main__":
+def main():
     # Ensure Python and Terraform are available
     log("Checking prerequisites...")
     if not shutil.which("python3"):
@@ -89,8 +149,16 @@ if __name__ == "__main__":
         log("Terraform is not installed. Please install it.")
         sys.exit(1)
 
-    # Run all steps
+    # 1. Generate tfvars
     generate_tfvars()
+
+    # 2. Initialize Terraform once
     initialize_terraform()
-    process_tfvars()
+
+    # 3. Process each .tfvars file in parallel
+    process_tfvars_in_parallel(max_workers=4)
+
     log("All workspaces have been processed successfully.")
+
+if __name__ == "__main__":
+    main()
