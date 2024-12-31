@@ -5,9 +5,10 @@ import sys
 from datetime import datetime
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-# Constants
+# Path to the parse_csv.py script (which accepts <input_csv> <output_folder>)
 CSV_PARSE_SCRIPT = "scripts/parse_csv.py"
-INPUT_FOLDER = "csv"
+
+# Hardcoded output folder
 OUTPUT_FOLDER = "tfvars"
 
 def log(message):
@@ -36,14 +37,13 @@ def run_command(command, error_message):
         return (stdout, stderr)
     except subprocess.CalledProcessError as e:
         log(f"{error_message}\n{e.stderr.strip()}")
-        # We raise here instead of sys.exit(1) so that a single failed workspace
-        # doesn't necessarily kill the entire process (depends on your preference).
+        # Raise instead of sys.exit(1) so a single failure doesn't kill the entire process.
         raise
 
 def clear_output_folder():
-    """Clear the output folder before generating new files."""
+    """Clear the hardcoded output folder before generating new files."""
     if os.path.exists(OUTPUT_FOLDER):
-        log(f"Clearing the contents of the folder '{OUTPUT_FOLDER}'...")
+        log(f"Clearing the contents of '{OUTPUT_FOLDER}'...")
         for filename in os.listdir(OUTPUT_FOLDER):
             file_path = os.path.join(OUTPUT_FOLDER, filename)
             try:
@@ -56,18 +56,19 @@ def clear_output_folder():
     else:
         os.makedirs(OUTPUT_FOLDER)
 
-def generate_tfvars():
-    """Run the Python script to generate .tfvars files."""
-    if not os.path.exists(INPUT_FOLDER):
-        log(f"Input folder '{INPUT_FOLDER}' does not exist.")
+def generate_tfvars(input_csv):
+    """Use parse_csv.py to generate .tfvars files from a single CSV input."""
+    if not os.path.isfile(input_csv):
+        log(f"Input file '{input_csv}' does not exist.")
         sys.exit(1)
 
     clear_output_folder()
 
     log("Running the Python script to generate .tfvars files...")
     try:
+        # Note how we pass the hardcoded OUTPUT_FOLDER here
         run_command(
-            f"python3 {CSV_PARSE_SCRIPT} {INPUT_FOLDER} {OUTPUT_FOLDER}",
+            f"python3 {CSV_PARSE_SCRIPT} {input_csv} {OUTPUT_FOLDER}",
             "Failed to generate .tfvars files."
         )
     except Exception:
@@ -92,8 +93,7 @@ def process_single_tfvars_file(tfvars_file):
     tfvars_path = os.path.join(OUTPUT_FOLDER, tfvars_file)
 
     log(f"[{workspace_name}] Creating or selecting Terraform workspace...")
-    # We use '||' to handle the case where the workspace already exists:
-    # if 'workspace new' fails, we try 'select'
+    # If 'workspace new' fails because the workspace exists, we try 'select':
     run_command(
         f"terraform workspace new {workspace_name} || terraform workspace select {workspace_name}",
         f"Failed to create or select workspace {workspace_name}."
@@ -123,7 +123,6 @@ def process_tfvars_in_parallel(max_workers=4):
         log("No .tfvars files found in the output folder.")
         sys.exit(1)
 
-    # Use a ThreadPoolExecutor to process files concurrently
     log(f"Starting parallel processing with up to {max_workers} workers...")
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_file = {
@@ -131,15 +130,21 @@ def process_tfvars_in_parallel(max_workers=4):
             for tfvars_file in tfvars_files
         }
 
-        # Iterate over tasks as they complete
         for future in as_completed(future_to_file):
             tfvars_file = future_to_file[future]
             try:
-                future.result()  # will raise an exception if any occurred
+                future.result()  # Raises an exception if any occurred
             except Exception as e:
                 log(f"[{tfvars_file}] Error in processing: {str(e)}")
 
 def main():
+    # Only expecting one argument now: <input_csv>
+    if len(sys.argv) < 2:
+        print(f"Usage: python {sys.argv[0]} <input_csv>")
+        sys.exit(1)
+
+    input_csv = "csv/" + sys.argv[1]
+
     # Ensure Python and Terraform are available
     log("Checking prerequisites...")
     if not shutil.which("python3"):
@@ -149,8 +154,8 @@ def main():
         log("Terraform is not installed. Please install it.")
         sys.exit(1)
 
-    # 1. Generate tfvars
-    generate_tfvars()
+    # 1. Generate tfvars from the CSV
+    generate_tfvars(input_csv)
 
     # 2. Initialize Terraform once
     initialize_terraform()

@@ -4,109 +4,179 @@ import sys
 import json
 import re
 
-# Fields that should always be treated as list of strings
+# Fields that should always be treated as a list of strings
 LIST_FIELDS = ["zones", "data_disk_sizes", "data_disk_types", "ports"]
 
-def parse_csv_folder(input_folder, output_folder):
+def parse_csv_file(input_csv, output_folder):
     """
-    Parse multiple CSV files from a folder and generate tfvars files for each unique subscription_id.
-    Ensures that the fields in LIST_FIELDS are always a list of strings in the generated tfvars.
+    Parse a single CSV file and generate tfvars files for each unique subscription_id.
+    Each tfvars file will contain:
+      - A subscription_id variable
+      - A resource_definitions list of maps.
+    
+    The script:
+    - Handles 'tags' as a map of strings if found (in the format key;value,key;value).
+    - Treats certain fields (LIST_FIELDS) as lists if the CSV column uses comma or semicolon separation.
+    - Converts 'public_ip_required' to a lowercase JSON boolean-like string ("true"/"false").
+    - Infers a resource 'type' from the CSV filename (e.g., "azure_acr" if the file is named "azure_acr.csv").
+    
+    This function performs comprehensive error handling, raising or printing errors as necessary.
     """
+
     try:
-        # Check if input folder exists
-        if not os.path.isdir(input_folder):
-            raise FileNotFoundError(f"The input folder '{input_folder}' does not exist.")
+        # 1. Check if input CSV exists and is indeed a file
+        if not os.path.isfile(input_csv):
+            raise FileNotFoundError(f"The input file '{input_csv}' does not exist or is not a file.")
 
-        # Check if output folder is writable (or create it if it doesn't exist)
-        if not os.access(output_folder, os.W_OK) and not os.path.exists(output_folder):
-            raise PermissionError(f"The output folder '{output_folder}' is not writable or does not exist.")
-
+        # 2. Check and/or create the output folder
         if not os.path.exists(output_folder):
-            os.makedirs(output_folder)
+            try:
+                os.makedirs(output_folder)
+            except Exception as e:
+                raise PermissionError(f"Unable to create output folder '{output_folder}': {e}")
+        else:
+            if not os.access(output_folder, os.W_OK):
+                raise PermissionError(f"The output folder '{output_folder}' is not writable.")
 
+        # 3. Prepare data structure for grouping resources by subscription
         resources_by_subscription = {}
 
-        # Process each CSV file in the folder
-        for csv_file in os.listdir(input_folder):
-            if csv_file.endswith(".csv"):
-                file_path = os.path.join(input_folder, csv_file)
-                # Extract type from filename (everything before .csv)
-                resource_type = os.path.splitext(csv_file)[0]
-                
-                try:
-                    with open(file_path, 'r') as f:
-                        reader = csv.DictReader(f)
-                        if "subscription_id" not in reader.fieldnames:
-                            raise KeyError(f"The file '{csv_file}' is missing the required 'subscription_id' column.")
+        # 4. Infer resource type from CSV filename (strip .csv)
+        resource_type = os.path.splitext(os.path.basename(input_csv))[0]
 
-                        for row in reader:
-                            subscription_id = row["subscription_id"]
-                            if subscription_id not in resources_by_subscription:
-                                resources_by_subscription[subscription_id] = []
-                            # Add type to the resource
-                            row_with_type = row.copy()
-                            row_with_type["type"] = resource_type
-                            resources_by_subscription[subscription_id].append(row_with_type)
-                except Exception as e:
-                    raise ValueError(f"Error reading the CSV file '{csv_file}': {e}")
+        # 5. Read the CSV file
+        try:
+            with open(input_csv, 'r', newline='', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
 
-        # Write a tfvars file for each subscription
-        for idx, (subscription_id, resources) in enumerate(resources_by_subscription.items(), start=1):
-            try:
-                workspace = f"workspace_{idx}"
-                output_file = os.path.join(output_folder, f"resources_{workspace}.tfvars")
-                with open(output_file, 'w') as f:
-                    # Write subscription_id as a separate variable
-                    f.write(f'subscription_id = "{subscription_id}"\n\n')
-                    # Write resource_definitions
-                    f.write('resource_definitions = [\n')
-                    for resource in resources:
-                        f.write('  {\n')
-                        for key, value in resource.items():
-                            # Skip subscription_id inside resource definitions
-                            if key == "subscription_id":
-                                continue
-                            
-                            # Always convert public_ip_required to lowercase JSON bool-like string
-                            if key == "public_ip_required" and isinstance(value, str):
-                                formatted_value = json.dumps(value.lower())
-                                f.write(f'    {key} = {formatted_value},\n')
-                                continue
+                # Ensure subscription_id column exists
+                if "subscription_id" not in reader.fieldnames:
+                    raise KeyError("The CSV file is missing the required 'subscription_id' column.")
 
-                            # Check if the key is in our list of list-fields
-                            if key in LIST_FIELDS:
-                                # Split on comma or semicolon, strip whitespace
-                                items = [v.strip() for v in re.split(r"[;,]", str(value)) if v.strip()]
-                                formatted_value = json.dumps(items)
-                                f.write(f'    {key} = {formatted_value},\n')
-                                continue
+                # Process each row
+                for row_number, row in enumerate(reader, start=2):  # start=2 because row 1 is headers
+                    try:
+                        subscription_id = row["subscription_id"].strip()
+                        if not subscription_id:
+                            raise ValueError(f"Empty 'subscription_id' found at CSV line {row_number}.")
 
-                            # Otherwise, handle semicolon- or comma-separated lists
-                            if ";" in str(value):
-                                formatted_value = json.dumps([str(v).strip() for v in str(value).split(";")])
-                            elif "," in str(value):
-                                formatted_value = json.dumps([str(v).strip() for v in str(value).split(",")])
-                            else:
-                                # Treat it as a simple string (or integer, etc.)
-                                formatted_value = json.dumps(value)
-                            
-                            f.write(f'    {key} = {formatted_value},\n')
-                        f.write('  },\n')
-                    f.write(']\n')
-            except Exception as e:
-                raise IOError(f"Error writing to the output file '{output_file}': {e}")
+                        # Initialize a new list for this subscription if needed
+                        if subscription_id not in resources_by_subscription:
+                            resources_by_subscription[subscription_id] = []
 
-        print(f"Successfully processed all CSV files and generated tfvars files in '{output_folder}'.")
-    except Exception as e:
-        print(f"Error: {e}")
-        sys.exit(1)
+                        # Copy the row so we can add 'type' without affecting the original
+                        row_with_type = row.copy()
+                        row_with_type["type"] = resource_type
 
+                        resources_by_subscription[subscription_id].append(row_with_type)
+
+                    except Exception as e:
+                        # We raise a more descriptive error if there's a problem processing a specific row
+                        raise ValueError(f"Error processing row {row_number} in the CSV: {e}")
+
+        except csv.Error as e:
+            raise ValueError(f"Error parsing the CSV file '{input_csv}': {e}")
+        except Exception as e:
+            raise ValueError(f"Unexpected error reading the CSV file '{input_csv}': {e}")
+
+        # 6. Create one .tfvars file per subscription
+        try:
+            if not resources_by_subscription:
+                print("Warning: No valid resources found in the CSV. No tfvars files will be created.")
+            else:
+                for idx, (subscription_id, resources) in enumerate(resources_by_subscription.items(), start=1):
+                    workspace = f"workspace_{idx}"
+                    output_file = os.path.join(output_folder, f"resources_{workspace}.tfvars")
+
+                    # Attempt to write to the output file
+                    try:
+                        with open(output_file, 'w', encoding='utf-8') as f:
+                            # Write subscription_id
+                            f.write(f'subscription_id = "{subscription_id}"\n\n')
+
+                            # Write resource_definitions array
+                            f.write('resource_definitions = [\n')
+                            for resource in resources:
+                                f.write('  {\n')
+                                for key, value in resource.items():
+                                    # Skip subscription_id inside resource definitions
+                                    if key == "subscription_id":
+                                        continue
+
+                                    # Handle tags as a map of strings (key;value,key;value)
+                                    if key == "tags" and value and value.strip():
+                                        try:
+                                            # Split by comma first, then each part by semicolon
+                                            tag_pairs = [tag.strip() for tag in value.split(',') if tag.strip()]
+                                            tags_dict = {}
+                                            for pair in tag_pairs:
+                                                kv = pair.split(';')
+                                                if len(kv) != 2:
+                                                    raise ValueError(f"Invalid tag format '{pair}'")
+                                                k, v = kv
+                                                tags_dict[k.strip()] = v.strip()
+
+                                            formatted_value = json.dumps(tags_dict)
+                                            f.write(f'    {key} = {formatted_value},\n')
+                                        except Exception as e:
+                                            raise ValueError(f"Error parsing tags '{value}': {e}")
+                                        continue
+
+                                    # Convert 'public_ip_required' to lowercase JSON bool-like string
+                                    if key == "public_ip_required" and isinstance(value, str):
+                                        formatted_value = json.dumps(value.lower())
+                                        f.write(f'    {key} = {formatted_value},\n')
+                                        continue
+
+                                    # Fields in LIST_FIELDS -> treat as list of strings
+                                    if key in LIST_FIELDS:
+                                        try:
+                                            # Split on comma or semicolon, strip whitespace
+                                            items = [v.strip() for v in re.split(r"[;,]", str(value)) if v.strip()]
+                                            formatted_value = json.dumps(items)
+                                            f.write(f'    {key} = {formatted_value},\n')
+                                        except Exception as e:
+                                            raise ValueError(f"Error parsing list field '{key}': {value} - {e}")
+                                        continue
+
+                                    # Otherwise, handle semicolon- or comma-separated lists generically
+                                    if ";" in str(value):
+                                        try:
+                                            parts = [str(v).strip() for v in str(value).split(";")]
+                                            formatted_value = json.dumps(parts)
+                                        except Exception as e:
+                                            raise ValueError(f"Error splitting semicolon list for '{key}': {value} - {e}")
+                                    elif "," in str(value):
+                                        try:
+                                            parts = [str(v).strip() for v in str(value).split(",")]
+                                            formatted_value = json.dumps(parts)
+                                        except Exception as e:
+                                            raise ValueError(f"Error splitting comma list for '{key}': {value} - {e}")
+                                    else:
+                                        # Treat as a simple string, integer, etc.
+                                        formatted_value = json.dumps(value)
+
+                                    f.write(f'    {key} = {formatted_value},\n')
+                                f.write('  },\n')
+                            f.write(']\n')
+
+                    except IOError as e:
+                        raise IOError(f"Error writing to the output file '{output_file}': {e}")
+
+        except Exception as e:
+            raise e  # Let any unexpected errors bubble up
+
+        print(f"Successfully processed CSV file '{input_csv}' and generated tfvars files in '{output_folder}'.")
+
+    except Exception as main_error:
+        print(f"Error: {main_error}")
+        sys.exit(1)  # Exit with a non-zero status to indicate failure
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
-        print("Usage: python script.py <input_folder> <output_folder>")
+        print("Usage: python script.py <input_csv> <output_folder>")
         sys.exit(1)
 
-    input_folder = sys.argv[1]
+    input_csv = sys.argv[1]
     output_folder = sys.argv[2]
-    parse_csv_folder(input_folder, output_folder)
+    parse_csv_file(input_csv, output_folder)

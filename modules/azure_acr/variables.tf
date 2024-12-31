@@ -15,17 +15,10 @@ variable "location" {
 }
 
 variable "sku" {
-  description = "SKU of the ACR (Basic, Standard, Premium)"
+  description = "SKU of the ACR (Basic, Standard)"
   type        = string
   default     = "Basic"
 }
-
-variable "admin_enabled" {
-  description = "Enable admin user for the ACR"
-  type        = bool
-  default     = false
-}
-
 variable "tags" {
   description = "Tags to be applied to the ACR"
   type        = map(string)

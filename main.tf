@@ -1,8 +1,6 @@
 provider "azurerm" {
   subscription_id = var.subscription_id
-  tenant_id       = "f7b668af-2f70-4101-a8de-8315bb4d00e7"
-  client_id       = "f4ae8dcd-ff11-4539-8c84-cdb836175109"
-  client_secret   = "Jdv8Q~d-IEhZF0tFyzJxibvz.CdDa8ec3dt34bxH"
+
   features {}
 }
 
@@ -52,5 +50,4 @@ module "azure_acr" {
   resource_group_name = each.value.resource_group_name
   location            = each.value.location
   sku                 = try(each.value.sku, "Basic")
-  admin_enabled       = try(each.value.admin_enabled, false)
 }
