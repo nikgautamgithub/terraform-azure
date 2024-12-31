@@ -1,45 +1,67 @@
-trigger: none
+trigger:
+  - main
 
 pool:
-  vmImage: 'ubuntu-latest'
+  vmImage: "ubuntu-latest"
 
 variables:
-  PYTHON_SCRIPT: 'scripts/automate_terraform.py'
-  INPUT_CSV: 'acr.csv'   # Replace with the name of your input CSV file
+  OUTPUT_FOLDER: "tfvars"
+  INPUT_CSV: "data/input.csv"
 
-steps:
-# Step 1: Checkout code
-- checkout: self
-  displayName: 'Checkout source code'
+jobs:
+  # Job 1: Generate tfvars files and matrix
+  - job: GenerateMatrix
+    displayName: "Generate tfvars files and dynamic matrix"
+    pool:
+      vmImage: "ubuntu-latest"
+    steps:
+      - checkout: self
+        displayName: "Checkout source code"
 
-# Step 2: Install Python
-- task: UsePythonVersion@0
-  inputs:
-    versionSpec: '3.x'
-    addToPath: true
-  displayName: 'Set up Python'
+      - task: UsePythonVersion@0
+        inputs:
+          versionSpec: "3.x"
+          addToPath: true
+        displayName: "Set up Python"
 
-- script: |
-    python3 -m pip install --upgrade pip
-    pip install -r requirements.txt
-  displayName: 'Install Python dependencies'
+      - script: |
+          python3 -m pip install --upgrade pip
+          pip install -r requirements.txt
+        displayName: "Install Python dependencies"
 
-# Step 3: Install Terraform
-- task: TerraformInstaller@0
-  inputs:
-    terraformVersion: 'latest'
-  displayName: 'Install Terraform'
+      - script: |
+          python3 scripts/parse_csv.py $(INPUT_CSV) $(OUTPUT_FOLDER)
+        displayName: "Generate tfvars files from CSV"
 
-# Step 4: Initialize Terraform
-- script: terraform --version
-  displayName: 'Verify Terraform installation'
+      - script: |
+          MATRIX=$(python3 scripts/generate_matrix.py)
+          echo "##vso[task.setvariable variable=TFVARS_MATRIX;isOutput=true]$MATRIX"
+        displayName: "Generate dynamic matrix"
 
-# Step 5: Prepare the environment and execute Python script
-- script: |
-    python3 $(PYTHON_SCRIPT) $(INPUT_CSV)
-  displayName: 'Run Python script'
+  # Job 2: Process Terraform workspaces dynamically
+  - job: ProcessTerraform
+    displayName: "Process Terraform Workspaces"
+    dependsOn: GenerateMatrix
+    strategy:
+      matrix: $[ dependencies.GenerateMatrix.outputs['TFVARS_MATRIX'] ]
+    pool:
+      vmImage: "ubuntu-latest"
+    steps:
+      - checkout: self
+        displayName: "Checkout source code"
 
-# Optional: Add cleanup tasks
-- script: |
-    echo "Cleaning up workspace"
-  displayName: 'Cleanup workspace'
+      - task: TerraformTaskV4@4
+        inputs:
+          provider: 'azurerm'
+          command: 'init'
+          backendServiceArm: 'Azure subscription 1(6e47c803-d4a0-49b2-9b1f-01500ce57b80)'
+          backendAzureRmResourceGroupName: 'my-rg'
+          backendAzureRmStorageAccountName: 'bondastorage'
+          backendAzureRmContainerName: 'terrformstatecontainer'
+          backendAzureRmKey: '$(TFVARS_FILE).tfstate'
+
+      - script: |
+          terraform workspace new $(TFVARS_FILE) || terraform workspace select $(TFVARS_FILE)
+          terraform plan -var-file=$(OUTPUT_FOLDER)/$(TFVARS_FILE)
+          terraform apply -var-file=$(OUTPUT_FOLDER)/$(TFVARS_FILE) -auto-approve
+        displayName: "Run Terraform Plan and Apply"
