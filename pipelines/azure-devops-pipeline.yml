@@ -1,57 +1,45 @@
-trigger:
-  - main
+trigger: none
 
 pool:
-  vmImage: "ubuntu-latest"
+  vmImage: 'ubuntu-latest'
 
 variables:
-  CSV_DIR: "./csv"
-  TFVARS_FILE: "terraform.tfvars"
+  PYTHON_SCRIPT: 'scripts/automate_terraform.py'
+  INPUT_CSV: 'acr.csv'   # Replace with the name of your input CSV file
 
 steps:
-  - script: |
-      echo "Checking for uploaded CSV files in $CSV_DIR..."
-      CSV_FILES=$(ls $CSV_DIR | grep .csv)
-      if [ -z "$CSV_FILES" ]; then
-        echo "Error: No CSV files found in $CSV_DIR. Please upload CSV files."
-        exit 1
-      fi
-      echo "Found CSV files:"
-      echo "$CSV_FILES"
-      echo "$CSV_FILES" > csv_list.txt
-    displayName: "Detect Uploaded CSV Files"
+# Step 1: Checkout code
+- checkout: self
+  displayName: 'Checkout source code'
 
-  - script: |
-      INVALID_FILES=""
-      while IFS= read -r CSV_FILE; do
-        echo "Processing $CSV_FILE..."
-        RESOURCE_TYPE=$(echo $CSV_FILE | cut -d'.' -f1) # Extract resource type from filename
-        echo "Detected resource type: $RESOURCE_TYPE"
+# Step 2: Install Python
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.x'
+    addToPath: true
+  displayName: 'Set up Python'
 
-        if [[ "$RESOURCE_TYPE" =~ ^(vm|aks|storage_account)$ ]]; then
-          echo "Parsing CSV..."
-          python scripts/parse_csv.py $CSV_DIR/$CSV_FILE $TFVARS_FILE
+- script: |
+    python3 -m pip install --upgrade pip
+    pip install -r requirements.txt
+  displayName: 'Install Python dependencies'
 
-          echo "Running Terraform for $RESOURCE_TYPE..."
-          terraform init
-          terraform plan -var-file=$TFVARS_FILE -out=tfplan
-          terraform apply -auto-approve tfplan
+# Step 3: Install Terraform
+- task: TerraformInstaller@0
+  inputs:
+    terraformVersion: 'latest'
+  displayName: 'Install Terraform'
 
-          echo "Cleaning up for $CSV_FILE..."
-          rm -f $TFVARS_FILE
-        else
-          echo "Invalid resource type: $RESOURCE_TYPE. Skipping $CSV_FILE..."
-          INVALID_FILES+="$CSV_FILE\n"
-        fi
-      done < csv_list.txt
+# Step 4: Initialize Terraform
+- script: terraform --version
+  displayName: 'Verify Terraform installation'
 
-      if [ -n "$INVALID_FILES" ]; then
-        echo "The following files were not processed due to invalid resource types:"
-        echo -e "$INVALID_FILES"
-      fi
-    displayName: "Process Each CSV File"
+# Step 5: Prepare the environment and execute Python script
+- script: |
+    python3 $(PYTHON_SCRIPT) $(INPUT_CSV)
+  displayName: 'Run Python script'
 
-  - script: |
-      echo "Cleanup: Removing temporary files..."
-      rm -f csv_list.txt
-    displayName: "Cleanup Temporary Files"
+# Optional: Add cleanup tasks
+- script: |
+    echo "Cleaning up workspace"
+  displayName: 'Cleanup workspace'
