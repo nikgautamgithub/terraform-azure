@@ -1,0 +1,3 @@
+subscription_id,key_vault_name,resource_group_name,location,sku_name,tags
+6e47c803-d4a0-49b2-9b1f-01500ce57b80,example-keyvault-0509,my-rg,UAE North,standard,"Name;exampleIdentity,Environment;Production"
+6e47c803-d4a0-49b2-9b1f-01500ce57b80,another-keyvault-2301,my-rg,Uae North,standard,"Name;exampleIdentity,Environment;Production"

@@ -12,9 +12,13 @@ locals {
   ]...)
 }
 
+locals {
+  os_disk_image_id = "/subscriptions/6e47c803-d4a0-49b2-9b1f-01500ce57b80/resourceGroups/my-rg/providers/Microsoft.Compute/galleries/mygallery/images/myimagedefinition/versions/1.0.0"
+}
+
 resource "azurerm_public_ip" "vm_public_ip" {
   count               = var.public_ip_required == "yes" ? length(var.zones) : 0
-  name                = "${var.vm_name}-${count.index + 1}-public-ip"
+  name                = length(var.zones) == 1 ? "${var.vm_name}-public-ip" : "${var.vm_name}-${count.index + 1}-public-ip"
   location            = var.location
   resource_group_name = var.resource_group_name
   allocation_method   = "Static"
@@ -24,7 +28,7 @@ resource "azurerm_public_ip" "vm_public_ip" {
 
 resource "azurerm_network_interface" "vm_nic" {
   count               = length(var.zones)
-  name                = "${var.vm_name}-${count.index + 1}-nic"
+  name                = length(var.zones) == 1 ? "${var.vm_name}-nic" : "${var.vm_name}-${count.index + 1}-nic"
   location            = var.location
   resource_group_name = var.resource_group_name
 
@@ -70,7 +74,7 @@ resource "azurerm_managed_disk" "data_disks" {
 
 resource "azurerm_linux_virtual_machine" "linux_vm" {
   count               = var.os_type == "Linux" ? length(var.zones) : 0
-  name                = "${var.vm_name}-${count.index + 1}"
+  name                = length(var.zones) == 1 ? "${var.vm_name}" : "${var.vm_name}-${count.index + 1}"
   resource_group_name = var.resource_group_name
   location            = var.location
   size                = var.vm_size
@@ -97,7 +101,7 @@ resource "azurerm_linux_virtual_machine" "linux_vm" {
 
 resource "azurerm_windows_virtual_machine" "windows_vm" {
   count               = var.os_type == "Windows" ? length(var.zones) : 0
-  name                = "${var.vm_name}-${count.index + 1}"
+  name                = length(var.zones) == 1 ? "${var.vm_name}" : "${var.vm_name}-${count.index + 1}"
   resource_group_name = var.resource_group_name
   location            = var.location
   size                = var.vm_size
@@ -105,8 +109,9 @@ resource "azurerm_windows_virtual_machine" "windows_vm" {
   admin_password      = var.admin_password
   zone                = var.zones[count.index]
 
-  patch_mode   = "Manual"
-  license_type = "Windows_Server"
+  patch_mode               = "Manual"
+  enable_automatic_updates = false
+  license_type             = "Windows_Server"
 
   network_interface_ids = [azurerm_network_interface.vm_nic[count.index].id]
 
@@ -116,7 +121,16 @@ resource "azurerm_windows_virtual_machine" "windows_vm" {
     disk_size_gb         = var.os_disk_size
   }
 
-  source_image_id = var.os_type == "Windows" ? data.azurerm_shared_image_version.windows_image[0].id : null
+  # source_image_id = data.azurerm_shared_image_version.windows_image[0].id
+  # source_image_reference {
+  #   publisher = "MicrosoftWindowsServer"
+  #   offer     = "WindowsServer"
+  #   sku       = "2022-datacenter-azure-edition"
+  #   version   = "latest"
+  # }
+
+  source_image_id = local.os_disk_image_id
+
 }
 
 resource "azurerm_virtual_machine_data_disk_attachment" "disk_attachments" {

@@ -34,7 +34,7 @@ variable "os_disk_size" {
 variable "zones" {
   description = "Availability zone for the VM"
   type        = list(string)
-  default     = []
+  default     = ["1"]
 }
 
 variable "ports" {

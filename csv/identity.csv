@@ -1,0 +1,3 @@
+subscription_id,identity_name,resource_group_name,location,tags
+6e47c803-d4a0-49b2-9b1f-01500ce57b80,identity-example0509,my-rg,UAE North,"Name;exampleIdentity,Environment;Production"
+6e47c803-d4a0-49b2-9b1f-01500ce57b81,identity-example2,my-rg,UAE North,"Name;exampleIdentity,Environment;Production"
