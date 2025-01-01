@@ -13,7 +13,7 @@ locals {
 }
 
 locals {
-  os_disk_image_id = "/subscriptions/6e47c803-d4a0-49b2-9b1f-01500ce57b80/resourceGroups/my-rg/providers/Microsoft.Compute/galleries/mygallery/images/myimagedefinition/versions/1.0.0"
+  os_image_id = "/subscriptions/6e47c803-d4a0-49b2-9b1f-01500ce57b80/resourceGroups/my-rg/providers/Microsoft.Compute/galleries/mygallery/images/myimagedef/versions/1.0.0"
 }
 
 resource "azurerm_public_ip" "vm_public_ip" {
@@ -94,7 +94,7 @@ resource "azurerm_linux_virtual_machine" "linux_vm" {
   source_image_reference {
     publisher = "Canonical"
     offer     = "0001-com-ubuntu-server-jammy"
-    sku       = "22_04-lts"
+    sku       = var.os_image
     version   = "latest"
   }
 }
@@ -121,15 +121,7 @@ resource "azurerm_windows_virtual_machine" "windows_vm" {
     disk_size_gb         = var.os_disk_size
   }
 
-  # source_image_id = data.azurerm_shared_image_version.windows_image[0].id
-  # source_image_reference {
-  #   publisher = "MicrosoftWindowsServer"
-  #   offer     = "WindowsServer"
-  #   sku       = "2022-datacenter-azure-edition"
-  #   version   = "latest"
-  # }
-
-  source_image_id = local.os_disk_image_id
+  source_image_id = local.os_image_id
 
 }
 

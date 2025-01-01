@@ -18,7 +18,7 @@ variable "os_type" {
   type = string
 }
 
-variable "os_disk_image" {
+variable "os_image" {
   type = string
 }
 
@@ -58,11 +58,6 @@ variable "subnet_name" {
   type        = string
 }
 
-variable "nic_name" {
-  description = "Names of the Network Interfaces for the VM"
-  type        = string
-}
-
 variable "allowed_ports" {
   description = "List of allowed ports for NSG rules"
   type        = list(string)
@@ -94,8 +89,3 @@ variable "admin_password" {
   type        = string
 }
 
-variable "availability_set_id" {
-  description = "ID of the availability set (if any)"
-  type        = string
-  default     = null
-}

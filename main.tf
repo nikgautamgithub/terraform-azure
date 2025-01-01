@@ -32,14 +32,13 @@ module "azure_vm" {
   location            = each.value.location
   vm_size             = each.value.vm_size
   os_type             = each.value.os_type
-  os_disk_image       = each.value.os_disk_image
+  os_image            = each.value.os_image
   os_disk_size        = each.value.os_disk_size
   os_disk_type        = each.value.os_disk_type
   zones               = length(each.value.zones) > 0 ? each.value.zones : ["1"]
   nsg_name            = each.value.nsg_name
   vnet_name           = each.value.vnet_name
   subnet_name         = each.value.subnet_name
-  nic_name            = each.value.nic_name
   allowed_ports       = try(each.value.allowed_ports, [])
   public_ip_required  = each.value.public_ip_required
   data_disks          = try(each.value.data_disks, [])
