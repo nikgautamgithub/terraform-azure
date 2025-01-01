@@ -1,19 +1,16 @@
 
 
 provider "azurerm" {
-  tenant_id       = local.tenant_id
-  client_id       = local.client_id
-  client_secret   = local.client_secret
   subscription_id = var.subscription_id
+  tenant_id       = var.tenant_id
+  client_id       = var.client_id
+  client_secret   = var.client_secret
 
   features {}
 }
 
 locals {
-  tenant_id     = "f7b668af-2f70-4101-a8de-8315bb4d00e7"
-  client_id     = "f4ae8dcd-ff11-4539-8c84-cdb836175109"
-  client_secret = "Jdv8Q~d-IEhZF0tFyzJxibvz.CdDa8ec3dt34bxH"
-  resources     = var.resource_definitions
+  resources = var.resource_definitions
 }
 
 # Group VM resources
@@ -83,7 +80,7 @@ module "azure_key_vault" {
   key_vault_name      = each.value.key_vault_name
   resource_group_name = each.value.resource_group_name
   location            = each.value.location
-  tenant_id           = local.tenant_id
+  tenant_id           = var.tenant_id
   sku_name            = try(each.value.sku_name, "Basic")
   tags                = try(each.value.tags, {})
 }

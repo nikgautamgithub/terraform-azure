@@ -8,3 +8,7 @@ variable "resource_definitions" {
   type        = any
 
 }
+
+variable "tenant_id" {}
+variable "client_id" {}
+variable "client_secret" {}
