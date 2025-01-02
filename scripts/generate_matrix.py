@@ -7,7 +7,7 @@ def generate_matrix(output_folder):
     if not tfvars_files:
         raise ValueError("No .tfvars files found in the output folder.")
 
-    matrix = {os.path.splitext(f)[0]: {"TFVARS_FILE": f} for f in tfvars_files}
+    matrix = {os.path.splitext(f)[0]: {"TFVARS_FILE": os.path.splitext(f)[0]} for f in tfvars_files}
     return matrix
 
 if __name__ == "__main__":
