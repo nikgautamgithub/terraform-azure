@@ -51,8 +51,8 @@ jobs:
           terraform init `
             -backend-config="storage_account_name=bondastorage" `
             -backend-config="container_name=terrformstatecontainer" `
-            -backend-config="key=$(TFVARS_FILE).tfstate" `
             -backend-config="resource_group_name=my-rg" `
+            -backend-config="key=$(TFVARS_FILE).tfstate" `
             -backend-config="subscription_id=$(storage_subscription_id)" `
             -backend-config="tenant_id=$(tenant_id)" `
             -backend-config="client_id=$(client_id)" `
