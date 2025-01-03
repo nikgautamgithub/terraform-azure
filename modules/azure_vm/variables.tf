@@ -58,12 +58,6 @@ variable "subnet_name" {
   type        = string
 }
 
-variable "allowed_ports" {
-  description = "List of allowed ports for NSG rules"
-  type        = list(string)
-  default     = []
-}
-
 variable "public_ip_required" {
   description = "Flag to indicate if a Public IP is required"
   type        = string

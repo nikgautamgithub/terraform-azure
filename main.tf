@@ -39,7 +39,7 @@ module "azure_vm" {
   nsg_name            = each.value.nsg_name
   vnet_name           = each.value.vnet_name
   subnet_name         = each.value.subnet_name
-  allowed_ports       = try(each.value.allowed_ports, [])
+  ports               = try(each.value.ports, [])
   public_ip_required  = each.value.public_ip_required
   data_disks          = try(each.value.data_disks, [])
   disk_types          = try(each.value.disk_types, [])
