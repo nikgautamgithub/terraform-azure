@@ -6,7 +6,7 @@ variable "resource_group_name" {
   type = string
 }
 
-variable "location" {
+variable "region" {
   type = string
 }
 
@@ -34,7 +34,12 @@ variable "os_disk_size" {
 variable "zones" {
   description = "Availability zone for the VM"
   type        = list(string)
-  default     = ["1"]
+  default     = []
+
+  validation {
+    condition     = length(var.zones) <= 3
+    error_message = "Maximum 3 availability zones are supported."
+  }
 }
 
 variable "ports" {
@@ -63,14 +68,19 @@ variable "public_ip_required" {
   type        = string
 }
 
-variable "data_disks" {
-  type    = set(string)
-  default = []
+variable "data_disk_sizes" {
+  description = "List of disk sizes in GB"
+  type        = list(string)
+
+  validation {
+    condition     = length(var.data_disk_sizes) == length(var.data_disk_types)
+    error_message = "Number of disk sizes must match number of disk types."
+  }
 }
 
-variable "disk_types" {
-  type    = list(string)
-  default = []
+variable "data_disk_types" {
+  description = "List of Azure disk types"
+  type        = list(string)
 }
 
 variable "admin_username" {

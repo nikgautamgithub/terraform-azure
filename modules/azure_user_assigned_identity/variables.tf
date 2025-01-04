@@ -8,7 +8,7 @@ variable "resource_group_name" {
   type        = string
 }
 
-variable "location" {
+variable "region" {
   description = "The location/region where the User Assigned Managed Identity will be created."
   type        = string
 }

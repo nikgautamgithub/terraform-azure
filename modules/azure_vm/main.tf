@@ -1,15 +1,30 @@
 locals {
-  # Create a map of all disk configurations across all zones
-  zonal_disks = merge([
-    for zone_index in range(length(var.zones)) : {
-      for disk_key, disk_size in var.data_disks :
-      "${disk_key}-${zone_index}" => {
-        size      = disk_size
-        zone      = var.zones[zone_index]
-        disk_type = var.disk_types[disk_key]
-      }
+  # For zonal deployments
+  zonal_disks = length(var.zones) > 0 ? {
+    for pair in setproduct(range(length(var.data_disk_sizes)), range(length(var.zones))) :
+    "${pair[0]}-${pair[1]}" => {
+      size      = var.data_disk_sizes[pair[0]]
+      zone      = var.zones[pair[1]]
+      disk_type = var.data_disk_types[pair[0]]
     }
-  ]...)
+  } : null
+
+  # For non-zonal deployments
+  non_zonal_disks = length(var.zones) == 0 ? {
+    for idx in range(length(var.data_disk_sizes)) :
+    "${idx}-0" => {
+      size      = var.data_disk_sizes[idx]
+      disk_type = var.data_disk_types[idx]
+      zone      = null
+    }
+  } : null
+
+  # Final disk configuration
+  final_disk_config = length(var.zones) > 0 ? local.zonal_disks : local.non_zonal_disks
+}
+
+locals {
+  os_parts = var.os_type == "Linux" ? split(":", var.os_type) : null
 }
 
 locals {
@@ -19,17 +34,17 @@ locals {
 resource "azurerm_public_ip" "vm_public_ip" {
   count               = var.public_ip_required == "yes" ? length(var.zones) : 0
   name                = length(var.zones) == 1 ? "${var.vm_name}-public-ip" : "${var.vm_name}-${count.index + 1}-public-ip"
-  location            = var.location
+  location            = var.region
   resource_group_name = var.resource_group_name
   allocation_method   = "Static"
   sku                 = "Standard"
-  zones               = [var.zones[count.index]]
+  zones               = length(var.zones) > 0 ? [var.zones[count.index]] : null
 }
 
 resource "azurerm_network_interface" "vm_nic" {
-  count               = length(var.zones)
-  name                = length(var.zones) == 1 ? "${var.vm_name}-nic" : "${var.vm_name}-${count.index + 1}-nic"
-  location            = var.location
+  count               = length(var.zones) > 0 ? length(var.zones) : 1
+  name                = length(var.zones) <= 1 ? "${var.vm_name}-nic" : "${var.vm_name}-${count.index + 1}-nic"
+  location            = var.region
   resource_group_name = var.resource_group_name
 
   ip_configuration {
@@ -56,31 +71,36 @@ resource "azurerm_network_security_rule" "inbound_rules" {
 }
 
 resource "azurerm_network_interface_security_group_association" "nic_nsg_association" {
-  count                     = length(var.zones)
+  count                     = length(var.zones) > 0 ? length(var.zones) : 1
   network_interface_id      = azurerm_network_interface.vm_nic[count.index].id
   network_security_group_id = data.azurerm_network_security_group.existing_nsg.id
+
+  depends_on = [
+    azurerm_network_interface.vm_nic,
+    data.azurerm_network_security_group.existing_nsg
+  ]
 }
 
 resource "azurerm_managed_disk" "data_disks" {
-  for_each             = local.zonal_disks
-  name                 = "${var.vm_name}-zone${split("-", each.key)[1]}-disk-${split("-", each.key)[0]}"
-  location             = var.location
+  for_each             = local.final_disk_config
+  name                 = "${var.vm_name}-disk-${each.key}"
+  location             = var.region
   resource_group_name  = var.resource_group_name
   storage_account_type = each.value.disk_type
   create_option        = "Empty"
-  disk_size_gb         = each.value.size
+  disk_size_gb         = tonumber(each.value.size)
   zone                 = each.value.zone
 }
 
 resource "azurerm_linux_virtual_machine" "linux_vm" {
-  count               = var.os_type == "Linux" ? length(var.zones) : 0
-  name                = length(var.zones) == 1 ? "${var.vm_name}" : "${var.vm_name}-${count.index + 1}"
+  count               = var.os_type == "Linux" ? (length(var.zones) > 0 ? length(var.zones) : 1) : 0
+  name                = length(var.zones) <= 1 ? var.vm_name : "${var.vm_name}-${count.index + 1}"
   resource_group_name = var.resource_group_name
-  location            = var.location
+  location            = var.region
   size                = var.vm_size
   admin_username      = var.admin_username
   admin_password      = var.admin_password
-  zone                = var.zones[count.index]
+  zone                = length(var.zones) > 0 ? var.zones[count.index] : null
 
   disable_password_authentication = false
   network_interface_ids           = [azurerm_network_interface.vm_nic[count.index].id]
@@ -92,22 +112,27 @@ resource "azurerm_linux_virtual_machine" "linux_vm" {
   }
 
   source_image_reference {
-    publisher = "Canonical"
-    offer     = "0001-com-ubuntu-server-jammy"
-    sku       = var.os_image
-    version   = "latest"
+    publisher = local.os_parts[0]
+    offer     = local.os_parts[1]
+    sku       = local.os_parts[2]
+    version   = local.os_parts[3]
   }
+
+  depends_on = [
+    azurerm_network_interface.vm_nic,
+    azurerm_network_interface_security_group_association.nic_nsg_association
+  ]
 }
 
 resource "azurerm_windows_virtual_machine" "windows_vm" {
-  count               = var.os_type == "Windows" ? length(var.zones) : 0
-  name                = length(var.zones) == 1 ? "${var.vm_name}" : "${var.vm_name}-${count.index + 1}"
+  count               = var.os_type == "Windows" ? (length(var.zones) > 0 ? length(var.zones) : 1) : 0
+  name                = length(var.zones) <= 1 ? var.vm_name : "${var.vm_name}-${count.index + 1}"
   resource_group_name = var.resource_group_name
-  location            = var.location
+  location            = var.region
   size                = var.vm_size
   admin_username      = var.admin_username
   admin_password      = var.admin_password
-  zone                = var.zones[count.index]
+  zone                = length(var.zones) > 0 ? var.zones[count.index] : null
 
   patch_mode               = "Manual"
   enable_automatic_updates = false
@@ -123,12 +148,30 @@ resource "azurerm_windows_virtual_machine" "windows_vm" {
 
   source_image_id = local.os_image_id
 
+  depends_on = [
+    azurerm_network_interface.vm_nic,
+    azurerm_network_interface_security_group_association.nic_nsg_association
+  ]
 }
 
 resource "azurerm_virtual_machine_data_disk_attachment" "disk_attachments" {
-  for_each           = local.zonal_disks
-  managed_disk_id    = azurerm_managed_disk.data_disks[each.key].id
-  virtual_machine_id = var.os_type == "Linux" ? azurerm_linux_virtual_machine.linux_vm[tonumber(split("-", each.key)[1])].id : azurerm_windows_virtual_machine.windows_vm[tonumber(split("-", each.key)[1])].id
-  lun                = split("-", each.key)[0]
-  caching            = "ReadWrite"
+  for_each        = local.final_disk_config
+  managed_disk_id = azurerm_managed_disk.data_disks[each.key].id
+  virtual_machine_id = var.os_type == "Linux" ? (
+    length(var.zones) > 0 ?
+    azurerm_linux_virtual_machine.linux_vm[tonumber(split("-", each.key)[1])].id :
+    azurerm_linux_virtual_machine.linux_vm[0].id
+    ) : (
+    length(var.zones) > 0 ?
+    azurerm_windows_virtual_machine.windows_vm[tonumber(split("-", each.key)[1])].id :
+    azurerm_windows_virtual_machine.windows_vm[0].id
+  )
+  lun     = tonumber(split("-", each.key)[0])
+  caching = "ReadWrite"
+
+  depends_on = [
+    azurerm_linux_virtual_machine.linux_vm,
+    azurerm_windows_virtual_machine.windows_vm,
+    azurerm_managed_disk.data_disks
+  ]
 }

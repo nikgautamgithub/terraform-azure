@@ -9,7 +9,7 @@ variable "resource_group_name" {
   type        = string
 }
 
-variable "location" {
+variable "region" {
   description = "Azure region where the ACR will be created"
   type        = string
 }

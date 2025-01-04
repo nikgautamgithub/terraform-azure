@@ -8,7 +8,7 @@ variable "resource_group_name" {
   type        = string
 }
 
-variable "location" {
+variable "region" {
   description = "The location/region where the Key Vault will be created."
   type        = string
 }

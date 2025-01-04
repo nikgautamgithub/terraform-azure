@@ -29,20 +29,20 @@ module "azure_vm" {
 
   vm_name             = each.value.vm_name
   resource_group_name = each.value.resource_group_name
-  location            = each.value.location
+  region              = each.value.region
   vm_size             = each.value.vm_size
   os_type             = each.value.os_type
   os_image            = each.value.os_image
   os_disk_size        = each.value.os_disk_size
   os_disk_type        = each.value.os_disk_type
-  zones               = length(each.value.zones) > 0 ? each.value.zones : ["1"]
+  zones               = try(each.value.zones, [])
   nsg_name            = each.value.nsg_name
   vnet_name           = each.value.vnet_name
   subnet_name         = each.value.subnet_name
   ports               = try(each.value.ports, [])
   public_ip_required  = each.value.public_ip_required
-  data_disks          = try(each.value.data_disks, [])
-  disk_types          = try(each.value.disk_types, [])
+  data_disk_sizes     = try(each.value.data_disk_sizes, [])
+  data_disk_types     = try(each.value.data_disk_types, [])
   admin_username      = each.value.admin_username
   admin_password      = each.value.admin_password
 }
@@ -54,7 +54,7 @@ module "azure_acr" {
 
   acr_name            = each.value.acr_name
   resource_group_name = each.value.resource_group_name
-  location            = each.value.location
+  region              = each.value.region
   sku                 = try(each.value.sku, "Basic")
   tags                = try(each.value.tags, {})
 
@@ -67,7 +67,7 @@ module "azure_user_assigned_identity" {
 
   identity_name       = each.value.identity_name
   resource_group_name = each.value.resource_group_name
-  location            = each.value.location
+  region              = each.value.region
   tags                = try(each.value.tags, {})
 }
 
@@ -78,7 +78,7 @@ module "azure_key_vault" {
 
   key_vault_name      = each.value.key_vault_name
   resource_group_name = each.value.resource_group_name
-  location            = each.value.location
+  region              = each.value.region
   tenant_id           = var.tenant_id
   sku_name            = try(each.value.sku_name, "Basic")
   tags                = try(each.value.tags, {})
