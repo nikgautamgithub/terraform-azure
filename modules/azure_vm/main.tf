@@ -23,8 +23,18 @@ locals {
   final_disk_config = length(var.zones) > 0 ? local.zonal_disks : local.non_zonal_disks
 }
 
+# First, add a local to split the image reference
 locals {
-  os_parts = var.os_type == "Linux" ? split(":", var.os_type) : null
+  # Split the OS image string into components
+  image_parts = split(":", var.os_image)
+
+  # Create a map for source_image_reference
+  source_image = {
+    publisher = local.image_parts[0]
+    offer     = local.image_parts[1]
+    sku       = local.image_parts[2]
+    version   = local.image_parts[3]
+  }
 }
 
 locals {
@@ -112,10 +122,10 @@ resource "azurerm_linux_virtual_machine" "linux_vm" {
   }
 
   source_image_reference {
-    publisher = local.os_parts[0]
-    offer     = local.os_parts[1]
-    sku       = local.os_parts[2]
-    version   = local.os_parts[3]
+    publisher = local.source_image.publisher
+    offer     = local.source_image.offer
+    sku       = local.source_image.sku
+    version   = local.source_image.version
   }
 
   depends_on = [
