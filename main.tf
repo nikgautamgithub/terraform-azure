@@ -15,10 +15,10 @@ locals {
 
 # Group VM resources
 locals {
-  vm_resources       = [for resource in local.resources : resource if resource.type == "vm"]
-  acr_resources      = [for resource in local.resources : resource if resource.type == "acr"]
-  identity_resources = [for resource in local.resources : resource if resource.type == "identity"]
-  kv_resource        = [for resource in local.resources : resource if resource.type == "kv"]
+  vm_resources  = [for resource in local.resources : resource if resource.type == "vm"]
+  acr_resources = [for resource in local.resources : resource if resource.type == "acr"]
+  mi_resources  = [for resource in local.resources : resource if resource.type == "mi"]
+  kv_resource   = [for resource in local.resources : resource if resource.type == "kv"]
 }
 
 # Call the VM module
@@ -61,7 +61,7 @@ module "azure_acr" {
 }
 
 module "azure_user_assigned_identity" {
-  for_each = { for idx, resource in local.identity_resources : idx => resource }
+  for_each = { for idx, resource in local.mi_resources : idx => resource }
 
   source = "./modules/azure_user_assigned_identity"
 
