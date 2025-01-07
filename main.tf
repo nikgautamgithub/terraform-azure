@@ -15,10 +15,11 @@ locals {
 
 # Group VM resources
 locals {
-  vm_resources  = [for resource in local.resources : resource if resource.type == "vm"]
-  acr_resources = [for resource in local.resources : resource if resource.type == "acr"]
-  mi_resources  = [for resource in local.resources : resource if resource.type == "mi"]
-  kv_resource   = [for resource in local.resources : resource if resource.type == "kv"]
+  vm_resources         = [for resource in local.resources : resource if resource.type == "vm"]
+  acr_resources        = [for resource in local.resources : resource if resource.type == "acr"]
+  mi_resources         = [for resource in local.resources : resource if resource.type == "mi"]
+  kv_resource          = [for resource in local.resources : resource if resource.type == "kv"]
+  databricks_resources = [for resource in local.resources : resource if resource.type == "databricks"]
 }
 
 # Call the VM module
@@ -82,4 +83,19 @@ module "azure_key_vault" {
   tenant_id           = var.tenant_id
   sku_name            = try(each.value.sku_name, "Basic")
   tags                = try(each.value.tags, {})
+}
+
+module "databricks" {
+  for_each = { for idx, resource in local.databricks_resources : idx => resource }
+
+  source = "./modules/azure_databricks_workspace"
+
+  workspace_name      = each.value.workspace_name
+  resource_group_name = each.value.resource_group_name
+  region              = each.value.region
+  sku                 = each.value.sku
+
+  private_endpoint_subnet_id = each.value.private_endpoint_subnet_id
+
+  tags = try(each.value.tags, {})
 }
