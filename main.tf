@@ -20,6 +20,8 @@ locals {
   mi_resources         = [for resource in local.resources : resource if resource.type == "mi"]
   kv_resource          = [for resource in local.resources : resource if resource.type == "kv"]
   databricks_resources = [for resource in local.resources : resource if resource.type == "databricks"]
+  aks_resource         = [for resource in local.resources : resource if resource.type == "aks"]
+  servicebus_resource  = [for resource in local.resources : resource if resource.type == "servicebus"]
 }
 
 # Call the VM module
@@ -58,7 +60,6 @@ module "azure_acr" {
   region              = each.value.region
   sku                 = try(each.value.sku, "Basic")
   tags                = try(each.value.tags, {})
-
 }
 
 module "azure_user_assigned_identity" {
@@ -104,4 +105,39 @@ module "databricks" {
   private_endpoint_subnet_id = each.value.sku == "premium" ? each.value.private_endpoint_subnet_id : null
 
   tags = try(each.value.tags, {})
+}
+module "aks" {
+  for_each = { for idx, resource in local.aks_resource : idx => resource }
+
+  source = "./modules/azure_aks"
+
+  cluster_name               = each.value.cluster_name
+  region                     = each.value.region
+  resource_group_name        = each.value.resource_group_name
+  dns_prefix                 = each.value.dns_prefix
+  kubernetes_version         = each.value.kubernetes_version
+  system_node_count          = each.value.system_node_count
+  user_node_count            = each.value.user_node_count
+  enable_auto_scaling        = each.value.enable_auto_scaling
+  system_node_min_count      = each.value.system_node_min_count
+  system_node_max_count      = each.value.system_node_max_count
+  network_plugin             = each.value.network_plugin
+  network_policy             = each.value.network_policy
+  load_balancer_sku          = each.value.load_balancer_sku
+  aad_rbac_enabled           = each.value.aad_rbac_enabled
+  aad_admin_group_object_ids = each.value.aad_admin_group_object_ids
+  tags                       = try(each.value.tags, {})
+}
+
+module "servicebus" {
+  for_each = { for idx, resource in local.servicebus_resource : idx => resource }
+
+  source = "./modules/azure_servicebus"
+
+  namespace_name      = each.value.namespace_name
+  region              = each.value.region
+  resource_group_name = each.value.resource_group_name
+  sku                 = each.value.sku
+  minimum_tls_version = each.value.minimum_tls_version
+  tags                = try(each.value.tags, {})
 }

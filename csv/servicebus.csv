@@ -1,0 +1,4 @@
+subscription_id,namespace_name,region,resource_group_name,sku,minimum_tls_version,tags
+6e47c803-d4a0-49b2-9b1f-01500ce57b80,myservicebus01,UAE North,my-rg,Standard,1.2,"environment:prod,owner:team1"
+6e47c803-d4a0-49b2-9b1f-01500ce57b80,myservicebus02,UAE North,my-rg,Basic,1.2,"environment:dev,owner:team2"
+6e47c803-d4a0-49b2-9b1f-01500ce57b80,myservicebus03,UAE North,my-rg,Basic,1.2,"environment:test,owner:team3"
