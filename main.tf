@@ -95,7 +95,13 @@ module "databricks" {
   region              = each.value.region
   sku                 = each.value.sku
 
-  private_endpoint_subnet_id = each.value.private_endpoint_subnet_id
+  vnet_id               = each.value.vnet_id
+  private_subnet_name   = each.value.private_subnet_name
+  private_subnet_nsg_id = each.value.private_subnet_nsg_id
+  public_subnet_name    = each.value.public_subnet_name
+  public_subnet_nsg_id  = each.value.public_subnet_nsg_id
+
+  private_endpoint_subnet_id = each.value.sku == "premium" ? each.value.private_endpoint_subnet_id : null
 
   tags = try(each.value.tags, {})
 }

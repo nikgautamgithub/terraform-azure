@@ -10,5 +10,5 @@ output "workspace_url" {
 
 output "private_endpoint_ip" {
   description = "The private IP address of the private endpoint"
-  value       = azurerm_private_endpoint.databricks_pe[0].private_service_connection[0].private_ip_address
+  value       = azurerm_private_endpoint.databricks_pe[*].private_service_connection[0].private_ip_address
 }
