@@ -61,7 +61,7 @@ def parse_csv_file(input_csv, output_folder):
 
                    try:
                        with open(output_file, 'w', encoding='utf-8') as f:
-                           f.write(f'subscription_id = "{subscription_id}"\n\n')
+                           f.write(f'subscription_id = "{subscription_id}",\n\n')
 
                            f.write('resource_definitions = [\n')
                            for resource in resources:
