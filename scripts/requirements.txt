@@ -1,1 +1,2 @@
 # Python dependencies
+python-hcl2
