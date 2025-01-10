@@ -22,6 +22,7 @@ locals {
   databricks_resources = [for resource in local.resources : resource if resource.type == "databricks"]
   aks_resource         = [for resource in local.resources : resource if resource.type == "aks"]
   servicebus_resource  = [for resource in local.resources : resource if resource.type == "servicebus"]
+  df_resources         = [for resource in local.resources : resource if resource.type == "df"]
 }
 
 # Call the VM module
@@ -91,11 +92,10 @@ module "databricks" {
 
   source = "./modules/azure_databricks_workspace"
 
-  workspace_name      = each.value.workspace_name
-  resource_group_name = each.value.resource_group_name
-  region              = each.value.region
-  sku                 = each.value.sku
-
+  workspace_name        = each.value.workspace_name
+  resource_group_name   = each.value.resource_group_name
+  region                = each.value.region
+  sku                   = each.value.sku
   vnet_id               = each.value.vnet_id
   private_subnet_name   = each.value.private_subnet_name
   private_subnet_nsg_id = each.value.private_subnet_nsg_id
@@ -106,28 +106,19 @@ module "databricks" {
 
   tags = try(each.value.tags, {})
 }
-module "aks" {
-  for_each = { for idx, resource in local.aks_resource : idx => resource }
+# module "aks" {
+#   for_each = { for idx, resource in local.aks_resource : idx => resource }
 
-  source = "./modules/azure_aks"
+#   source = "./modules/azure_aks"
 
-  cluster_name               = each.value.cluster_name
-  region                     = each.value.region
-  resource_group_name        = each.value.resource_group_name
-  dns_prefix                 = each.value.dns_prefix
-  kubernetes_version         = each.value.kubernetes_version
-  system_node_count          = each.value.system_node_count
-  user_node_count            = each.value.user_node_count
-  enable_auto_scaling        = each.value.enable_auto_scaling
-  system_node_min_count      = each.value.system_node_min_count
-  system_node_max_count      = each.value.system_node_max_count
-  network_plugin             = each.value.network_plugin
-  network_policy             = each.value.network_policy
-  load_balancer_sku          = each.value.load_balancer_sku
-  aad_rbac_enabled           = each.value.aad_rbac_enabled
-  aad_admin_group_object_ids = each.value.aad_admin_group_object_ids
-  tags                       = try(each.value.tags, {})
-}
+#   cluster_name               = each.value.cluster_name
+#   region                     = each.value.region
+#   resource_group_name        = each.value.resource_group_name
+#   dns_prefix                 = each.value.dns_prefix
+#   kubernetes_version         = each.value.kubernetes_version
+
+#   tags                       = try(each.value.tags, {})
+# }
 
 module "servicebus" {
   for_each = { for idx, resource in local.servicebus_resource : idx => resource }
@@ -141,3 +132,22 @@ module "servicebus" {
   minimum_tls_version = each.value.minimum_tls_version
   tags                = try(each.value.tags, {})
 }
+
+module "azure_data_factory" {
+  for_each = { for idx, resource in local.df_resources : idx => resource }
+
+  source = "./modules/azure_df"
+
+  data_factory_name     = each.value.data_factory_name
+  resource_group_name   = each.value.resource_group_name
+  region                = each.value.region
+  subnet_id             = try(each.value.subnet_id, null)
+  private_endpoint_name = try(each.value.private_endpoint_name, null)
+  subresource           = try(each.value.subresource, ["dataFactory"])
+
+  tags = try(each.value.tags, {})
+}
+
+
+
+
