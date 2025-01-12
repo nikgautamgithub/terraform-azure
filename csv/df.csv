@@ -1,0 +1,2 @@
+subscription_id,resource_group_name,region,data_factory_name,tags,subnet_id,subresource
+6e47c803-d4a0-49b2-9b1f-01500ce57b80,my-rg,UAE North,adf-example123,"env:production,owner:teamA",/subscriptions/6e47c803-d4a0-49b2-9b1f-01500ce57b80/resourceGroups/my-rg/providers/Microsoft.Network/virtualNetworks/linux-vnet-01/subnets/pe-subnet,dataFactory

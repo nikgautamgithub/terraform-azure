@@ -24,12 +24,6 @@ variable "subnet_id" {
   description = "ID of the subnet where the private endpoint will be created"
 }
 
-variable "private_endpoint_name" {
-  type        = string
-  description = "Name of the private endpoint"
-  default     = null
-}
-
 variable "subresource" {
   type        = string
   description = "Name of the private subresource"

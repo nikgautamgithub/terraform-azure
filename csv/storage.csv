@@ -1,2 +1,2 @@
-subscription_id,resource_group_name,region,storage_account_name,subnet_id,private_endpoint_subresource_name,account_tier,account_replication_type,tags
-6e47c803-d4a0-49b2-9b1f-01500ce57b80,my-rg,UAE North,storacct123,/subscriptions/6e47c803-d4a0-49b2-9b1f-01500ce57b80/resourceGroups/my-rg/providers/Microsoft.Network/virtualNetworks/linux-vnet-01/subnets/subnet-01,blob,Standard,LRS,"env:production,owner:teamA"
+subscription_id,resource_group_name,region,storage_account_name,subnet_id,subresource,account_tier,account_replication_type,tags
+6e47c803-d4a0-49b2-9b1f-01500ce57b80,my-rg,UAE North,storacct123,/subscriptions/6e47c803-d4a0-49b2-9b1f-01500ce57b80/resourceGroups/my-rg/providers/Microsoft.Network/virtualNetworks/linux-vnet-01/subnets/pe-subnet,blob,Standard,LRS,"env:production,owner:teamA"

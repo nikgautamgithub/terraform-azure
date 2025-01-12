@@ -138,13 +138,12 @@ module "azure_data_factory" {
 
   source = "./modules/azure_df"
 
-  data_factory_name     = each.value.data_factory_name
-  resource_group_name   = each.value.resource_group_name
-  region                = each.value.region
-  subnet_id             = try(each.value.subnet_id, null)
-  private_endpoint_name = try(each.value.private_endpoint_name, null)
-  subresource           = try(each.value.subresource, ["dataFactory"])
-  tags                  = try(each.value.tags, {})
+  data_factory_name   = each.value.data_factory_name
+  resource_group_name = each.value.resource_group_name
+  region              = each.value.region
+  subnet_id           = try(each.value.subnet_id, null)
+  subresource         = try(each.value.subresource, ["dataFactory"])
+  tags                = try(each.value.tags, {})
 }
 
 module "storage" {
@@ -152,14 +151,14 @@ module "storage" {
 
   source = "./modules/storage"
 
-  resource_group_name               = each.value.resource_group_name
-  region                            = each.value.region
-  storage_account_name              = each.value.storage_account_name
-  subnet_id                         = each.value.subnet_id
-  private_endpoint_subresource_name = each.value.storage_subresource_name
-  account_tier                      = each.value.account_tier
-  account_replication_type          = each.value.account_replication_type
-  tags                              = try(each.value.tags, {})
+  resource_group_name      = each.value.resource_group_name
+  region                   = each.value.region
+  storage_account_name     = each.value.storage_account_name
+  subnet_id                = each.value.subnet_id
+  subresource              = each.value.subresource
+  account_tier             = each.value.account_tier
+  account_replication_type = each.value.account_replication_type
+  tags                     = try(each.value.tags, {})
 }
 
 

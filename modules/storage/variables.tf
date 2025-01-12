@@ -22,10 +22,9 @@ variable "subnet_id" {
   description = "ID of the subnet where the private endpoint will be created"
 }
 
-variable "private_endpoint_subresource_name" {
-  type        = list(string)
-  description = "List of subresource names for private endpoint (e.g., ['blob', 'file', 'queue', 'table'])"
-  default     = ["blob"]
+variable "subresource" {
+  type        = string
+  description = "Subresource name for private endpoint"
 }
 
 variable "account_tier" {

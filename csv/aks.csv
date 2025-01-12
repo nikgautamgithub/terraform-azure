@@ -1,2 +1,2 @@
 cluster_name,resource_group,location,kubernetes_version,pool_names,vm_sizes,node_counts,min_counts,max_counts,os_disk_sizes,node_labels,node_taints
-my-aks-cluster,my-rg,eastus,1.26.0,"system,pool1,pool2","Standard_D2s_v3,Standard_D4s_v3,Standard_D8s_v3","1,2,1","1,2,1","3,5,3","128,256,512","environment:prod;type:system,workload:apps;env:prod,workload:batch","NoSchedule,workload=apps:NoSchedule,none"
+my-aks-cluster,my-rg,eastus,1.26.0,"""system,pool1,pool2""","""Standard_D2s_v3,Standard_D4s_v3,Standard_D8s_v3""","""1,2,1""","""1,2,1""","""3,5,3""","128,128,64","""environment:prod;type:system,workload:apps;env:prod,workload:batch""","""NoSchedule,workload=apps:NoSchedule,none"""

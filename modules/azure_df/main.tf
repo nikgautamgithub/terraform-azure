@@ -19,7 +19,7 @@ resource "azurerm_data_factory" "adf" {
 }
 
 resource "azurerm_private_endpoint" "adf_pe" {
-  name                = coalesce(var.private_endpoint_name, "${var.data_factory_name}-pe")
+  name                = "${var.data_factory_name}-pe"
   location            = var.region
   resource_group_name = var.resource_group_name
   subnet_id           = var.subnet_id

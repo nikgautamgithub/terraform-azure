@@ -27,6 +27,6 @@ resource "azurerm_private_endpoint" "storage_pe" {
     name                           = "${var.storage_account_name}-privateserviceconnection"
     private_connection_resource_id = azurerm_storage_account.storage.id
     is_manual_connection           = false
-    subresource_names              = var.private_endpoint_subresource_name
+    subresource_names              = [var.subresource]
   }
 }
