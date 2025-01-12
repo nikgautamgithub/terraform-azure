@@ -26,15 +26,15 @@ locals {
 # First, add a local to split the image reference
 locals {
   # Split the OS image string into components
-  image_parts = split(":", var.os_image)
+  image_parts = var.os_type == "Linux" ? split(":", var.os_image) : null
 
   # Create a map for source_image_reference
-  source_image = {
+  source_image = var.os_type == "Linux" ? {
     publisher = local.image_parts[0]
     offer     = local.image_parts[1]
     sku       = local.image_parts[2]
     version   = local.image_parts[3]
-  }
+  } : {}
 }
 
 locals {

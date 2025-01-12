@@ -23,6 +23,8 @@ locals {
   aks_resource         = [for resource in local.resources : resource if resource.type == "aks"]
   servicebus_resource  = [for resource in local.resources : resource if resource.type == "servicebus"]
   df_resources         = [for resource in local.resources : resource if resource.type == "df"]
+  storage_resources    = [for resource in local.resources : resource if resource.type == "storage"]
+
 }
 
 # Call the VM module
@@ -92,19 +94,17 @@ module "databricks" {
 
   source = "./modules/azure_databricks_workspace"
 
-  workspace_name        = each.value.workspace_name
-  resource_group_name   = each.value.resource_group_name
-  region                = each.value.region
-  sku                   = each.value.sku
-  vnet_id               = each.value.vnet_id
-  private_subnet_name   = each.value.private_subnet_name
-  private_subnet_nsg_id = each.value.private_subnet_nsg_id
-  public_subnet_name    = each.value.public_subnet_name
-  public_subnet_nsg_id  = each.value.public_subnet_nsg_id
-
+  workspace_name             = each.value.workspace_name
+  resource_group_name        = each.value.resource_group_name
+  region                     = each.value.region
+  sku                        = each.value.sku
+  vnet_id                    = each.value.vnet_id
+  private_subnet_name        = each.value.private_subnet_name
+  private_subnet_nsg_id      = each.value.private_subnet_nsg_id
+  public_subnet_name         = each.value.public_subnet_name
+  public_subnet_nsg_id       = each.value.public_subnet_nsg_id
   private_endpoint_subnet_id = each.value.sku == "premium" ? each.value.private_endpoint_subnet_id : null
-
-  tags = try(each.value.tags, {})
+  tags                       = try(each.value.tags, {})
 }
 # module "aks" {
 #   for_each = { for idx, resource in local.aks_resource : idx => resource }
@@ -144,8 +144,22 @@ module "azure_data_factory" {
   subnet_id             = try(each.value.subnet_id, null)
   private_endpoint_name = try(each.value.private_endpoint_name, null)
   subresource           = try(each.value.subresource, ["dataFactory"])
+  tags                  = try(each.value.tags, {})
+}
 
-  tags = try(each.value.tags, {})
+module "storage" {
+  for_each = { for idx, resource in local.storage_resources : idx => resource }
+
+  source = "./modules/storage"
+
+  resource_group_name               = each.value.resource_group_name
+  region                            = each.value.region
+  storage_account_name              = each.value.storage_account_name
+  subnet_id                         = each.value.subnet_id
+  private_endpoint_subresource_name = each.value.storage_subresource_name
+  account_tier                      = each.value.account_tier
+  account_replication_type          = each.value.account_replication_type
+  tags                              = try(each.value.tags, {})
 }
 
 
