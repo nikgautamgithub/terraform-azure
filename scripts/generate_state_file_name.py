@@ -11,7 +11,9 @@ relevant_keys = {
     "databricks": "workspace_name",
     "servicebus": "namespace_name",
     "df": "data_factory_name",
-    "storage": "storage_account_name"
+    "storage": "storage_account_name",
+    "apim": "apim_name",
+    "sendgrid": "name"
 }
 
 # Check if a file path is passed as an argument
