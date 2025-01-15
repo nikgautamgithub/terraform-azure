@@ -24,7 +24,8 @@ locals {
   servicebus_resource  = [for resource in local.resources : resource if resource.type == "servicebus"]
   df_resources         = [for resource in local.resources : resource if resource.type == "df"]
   storage_resources    = [for resource in local.resources : resource if resource.type == "storage"]
-
+  apim_resources       = [for resource in local.resources : resource if resource.type == "apim"]
+  sendgrid_resources   = [for resource in local.resources : resource if resource.type == "sendgrid"]
 }
 
 # Call the VM module
@@ -149,7 +150,7 @@ module "azure_data_factory" {
 module "storage" {
   for_each = { for idx, resource in local.storage_resources : idx => resource }
 
-  source = "./modules/storage"
+  source = "./modules/azure_storage"
 
   resource_group_name      = each.value.resource_group_name
   region                   = each.value.region
@@ -159,6 +160,37 @@ module "storage" {
   account_tier             = each.value.account_tier
   account_replication_type = each.value.account_replication_type
   tags                     = try(each.value.tags, {})
+}
+
+module "azure_apim" {
+  for_each = { for idx, resource in local.apim_resources : idx => resource }
+
+  source = "./modules/azure_apim"
+
+  apim_name                     = each.value.apim_name
+  resource_group_name           = each.value.resource_group_name
+  region                        = each.value.region
+  publisher_name                = each.value.publisher_name
+  publisher_email               = each.value.publisher_email
+  sku_name                      = try(each.value.sku_name, "Developer_1")
+  connectivity_type             = try(each.value.connectivity_type, "None")
+  subnet_id                     = try(each.value.subnet_id, null)
+  subresource                   = try(each.value.subresource, ["gateway"])
+  existing_application_insights = each.value.existing_application_insights
+  tags                          = try(each.value.tags, {})
+}
+
+module "azure_sendgrid" {
+  for_each = { for idx, resource in local.sendgrid_resources : idx => resource }
+
+  source = "./modules/azure_sendgrid"
+
+  name                = each.value.name
+  resource_group_name = each.value.resource_group_name
+  region              = each.value.region
+  plan                = each.value.plan
+  recurring_billing   = try(each.value.recurring_billing, true)
+  tags                = try(each.value.tags, {})
 }
 
 

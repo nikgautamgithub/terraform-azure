@@ -1,0 +1,2 @@
+subscription_id,resource_group_name,region,name,plan,recurring_billing,tags
+6e47c803-d4a0-49b2-9b1f-01500ce57b80,my-rg,UAE North,example_sendgrid,Standard,TRUE,"environment:production,owner:admin"

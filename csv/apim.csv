@@ -1,0 +1,2 @@
+subscription_id,resource_group_name,region,apim_name,publisher_name,publisher_email,sku_name,zones,tags,existing_application_insights,connectivity_type,subnet_id,subresource
+6e47c803-d4a0-49b2-9b1f-01500ce57b80,my-rg,UAE North,example_apim,example_publisher,example@example.com,Standard,[],{},example_app_insights,Private Endpoint,/subscriptions/6e47c803-d4a0-49b2-9b1f-01500ce57b80/resourceGroups/my-rg/providers/Microsoft.Network/virtualNetworks/linux-vnet-01/subnets/pe-subnet,gateway
