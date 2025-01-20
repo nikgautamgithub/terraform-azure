@@ -16,19 +16,27 @@ resource "azurerm_api_management" "apim" {
     type = "SystemAssigned"
   }
 
-  dynamic "application_insights" {
-    for_each = var.existing_application_insights != null ? [1] : []
-    content {
-      instrumentation_key = data.azurerm_application_insights.existing[0].instrumentation_key
-    }
-  }
-
   dynamic "virtual_network_configuration" {
     for_each = var.connectivity_type == "Virtual Network" ? [1] : []
     content {
       subnet_id = var.subnet_id
     }
   }
+}
+
+resource "azurerm_api_management_logger" "logger" {
+  count               = var.existing_application_insights != null ? 1 : 0
+  name                = "appinsights-logger"
+  api_management_name = var.apim_name
+  resource_group_name = var.resource_group_name
+
+  application_insights {
+    instrumentation_key = data.azurerm_application_insights.existing[0].instrumentation_key
+  }
+
+  depends_on = [
+    data.azurerm_application_insights.existing
+  ]
 }
 
 resource "azurerm_private_endpoint" "apim_pe" {

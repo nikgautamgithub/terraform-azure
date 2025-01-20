@@ -189,7 +189,6 @@ module "azure_sendgrid" {
   resource_group_name = each.value.resource_group_name
   region              = each.value.region
   plan                = each.value.plan
-  recurring_billing   = try(each.value.recurring_billing, true)
   tags                = try(each.value.tags, {})
 }
 
