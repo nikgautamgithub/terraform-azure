@@ -8,11 +8,6 @@ variable "resource_group_name" {
   type        = string
 }
 
-variable "region" {
-  description = "Azure region where the SendGrid account will be created"
-  type        = string
-}
-
 variable "plan" {
   description = "SendGrid plan type"
   type        = string
@@ -22,4 +17,8 @@ variable "tags" {
   description = "Map of tags to assign to the resource"
   type        = map(string)
   default     = {}
+}
+
+variable "subscription_id" {
+  type = string
 }

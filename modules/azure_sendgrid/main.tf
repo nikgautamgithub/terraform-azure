@@ -1,7 +1,7 @@
 resource "azurerm_marketplace_agreement" "sendgrid" {
   publisher = "sendgrid"
-  offer     = "sendgrid_azure"
-  plan      = var.plan
+  offer     = "tsg-saas-offer"
+  plan      = "free-100-2022"
 }
 
 resource "azurerm_resource_group_template_deployment" "sendgrid" {
@@ -10,26 +10,110 @@ resource "azurerm_resource_group_template_deployment" "sendgrid" {
   deployment_mode     = "Incremental"
 
   template_content = jsonencode({
-    "$schema" : "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "$schema" : "http://schema.management.azure.com/schemas/2015-01-01-preview/deploymentTemplate.json#",
     "contentVersion" : "1.0.0.0",
-    "parameters" : {},
-    "variables" : {},
+    "parameters" : {
+      "name" : {
+        "type" : "String"
+      },
+      "planId" : {
+        "type" : "String"
+      },
+      "offerId" : {
+        "type" : "String"
+      },
+      "publisherId" : {
+        "type" : "String"
+      },
+      "quantity" : {
+        "type" : "Int"
+      },
+      "termId" : {
+        "type" : "String"
+      },
+      "azureSubscriptionId" : {
+        "type" : "String"
+      },
+      "publisherTestEnvironment" : {
+        "type" : "String"
+      },
+      "autoRenew" : {
+        "type" : "Bool"
+      },
+      "location" : {
+        "type" : "String"
+      },
+      "tags" : {
+        "type" : "Object"
+      },
+      "riskPropertyBagHeader" : {
+        "type" : "String"
+      }
+    },
     "resources" : [
       {
         "type" : "Microsoft.SaaS/resources",
         "apiVersion" : "2018-03-01-beta",
-        "name" : var.name,
-        "location" : var.region,
+        "name" : "[parameters('name')]",
+        "location" : "[parameters('location')]",
+        "tags" : "[parameters('tags')]",
         "properties" : {
-          "publisherId" : "sendgrid",
-          "offerId" : "sendgrid_azure",
-          "planId" : var.plan,
-          "quantity" : 1,
-          "termId" : "hjdtn7tfnxcy" # Monthly billing term
-        },
-        "tags" : var.tags
+          "saasResourceName" : "[parameters('name')]",
+          "publisherId" : "[parameters('publisherId')]",
+          "SKUId" : "[parameters('planId')]",
+          "offerId" : "[parameters('offerId')]",
+          "quantity" : "[parameters('quantity')]",
+          "termId" : "[parameters('termId')]",
+          "autoRenew" : "[parameters('autoRenew')]",
+          "paymentChannelType" : "SubscriptionDelegated",
+          "paymentChannelMetadata" : {
+            "AzureSubscriptionId" : "[parameters('azureSubscriptionId')]"
+          },
+          "publisherTestEnvironment" : "[parameters('publisherTestEnvironment')]",
+          "storeFront" : "AzurePortal",
+          "riskPropertyBagHeader" : "[parameters('riskPropertyBagHeader')]"
+        }
       }
     ]
+  })
+
+  parameters_content = jsonencode({
+    "name" : {
+      "value" : var.name
+    },
+    "planId" : {
+      "value" : "free-100-2022"
+    },
+    "offerId" : {
+      "value" : "tsg-saas-offer"
+    },
+    "publisherId" : {
+      "value" : "sendgrid"
+    },
+    "quantity" : {
+      "value" : 1
+    },
+    "termId" : {
+      "value" : "hjdtn7tfnxcy"
+    },
+    "azureSubscriptionId" : {
+      "value" : var.subscription_id
+    },
+    "publisherTestEnvironment" : {
+      "value" : "False"
+    },
+    "autoRenew" : {
+      "value" : true
+    },
+    "location" : {
+      "value" : "global"
+    },
+    "tags" : {
+      "value" : var.tags
+    },
+    "riskPropertyBagHeader" : {
+      "value" : ""
+    }
   })
 
   depends_on = [

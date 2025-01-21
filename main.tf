@@ -187,9 +187,9 @@ module "azure_sendgrid" {
 
   name                = each.value.name
   resource_group_name = each.value.resource_group_name
-  region              = each.value.region
   plan                = each.value.plan
   tags                = try(each.value.tags, {})
+  subscription_id     = var.subscription_id
 }
 
 
