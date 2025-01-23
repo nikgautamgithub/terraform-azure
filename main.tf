@@ -22,6 +22,7 @@ locals {
   databricks_resources = [for resource in local.resources : resource if resource.type == "databricks"]
   aks_resource         = [for resource in local.resources : resource if resource.type == "aks"]
   servicebus_resource  = [for resource in local.resources : resource if resource.type == "servicebus"]
+  logicapp_resource    = [for resource in local.resources : resource if resource.type == "logicapp"]
   df_resources         = [for resource in local.resources : resource if resource.type == "df"]
   storage_resources    = [for resource in local.resources : resource if resource.type == "storage"]
   apim_resources       = [for resource in local.resources : resource if resource.type == "apim"]
@@ -192,6 +193,20 @@ module "azure_sendgrid" {
   subscription_id     = var.subscription_id
 }
 
+module "logic_app" {
+  for_each = { for idx, resource in local.logicapp_resource : idx => resource }
 
+  source = "./modules/azure_logic_app"
 
-
+  subscription_id       = var.subscription_id
+  name                  = each.value.name
+  resource_group_name   = each.value.resource_group_name
+  region                = each.value.region
+  pricing_plan          = each.value.pricing_plan
+  storage_account_name  = each.value.storage_account_name
+  vnet_name             = each.value.vnet_name
+  private_endpoint_name = each.value.private_endpoint_name
+  logic_app_subnet_name = each.value.logic_app_subnet_name
+  inbound_subnet_name   = each.value.inbound_subnet_name
+  tags                  = try(each.value.tags,{})
+}

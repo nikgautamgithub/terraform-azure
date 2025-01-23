@@ -1,0 +1,2 @@
+name,resource_group_name,region,subscription_id,pricing_plan,storage_account_name,vnet_name,private_endpoint_name,inbound_subnet_name,logic_app_subnet_name,tags
+bondalogicapp,my-rg,UAE North,6e47c803-d4a0-49b2-9b1f-01500ce57b80,WS1,bondastorage,linux-vnet-01,pe-my-logic-app,logic-app-snet,pe-subnet,"env:prod,owner:team-a"
