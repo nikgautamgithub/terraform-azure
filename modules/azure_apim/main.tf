@@ -35,7 +35,7 @@ resource "azurerm_api_management_logger" "logger" {
   }
 
   depends_on = [
-    data.azurerm_application_insights.existing
+    data.azurerm_application_insights.existing, azurerm_api_management.apim
   ]
 }
 
@@ -52,4 +52,8 @@ resource "azurerm_private_endpoint" "apim_pe" {
     is_manual_connection           = false
     subresource_names              = [var.subresource]
   }
+
+  depends_on = [
+    azurerm_api_management.apim
+  ]
 }

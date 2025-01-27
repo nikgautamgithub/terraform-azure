@@ -60,7 +60,7 @@ variable "default_node_pool" {
   }
 
   validation {
-    condition     = contains(["Linux", "Ubuntu"], var.default_node_pool.os_sku)
+    condition     = contains(["AzureLinux", "Ubuntu"], var.default_node_pool.os_sku)
     error_message = "The default node pool OS SKU must be either 'Linux' or 'Ubuntu'."
   }
 }

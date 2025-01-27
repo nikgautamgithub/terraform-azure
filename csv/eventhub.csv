@@ -1,0 +1,2 @@
+resource_group_name,namespace_name,location,pricing_tier,throughput_units,private_endpoint_subnet_id,tags
+my-rg,ns-eventhub-prod,uaenorth,Standard,2,/subscriptions/6e47c803-d4a0-49b2-9b1f-01500ce57b80/resourceGroups/my-rg/providers/Microsoft.Network/virtualNetworks/linux-vnet-01/subnets/subnet-02,"Environment:Production,Owner:Platform"

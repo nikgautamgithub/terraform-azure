@@ -24,33 +24,40 @@ def parse_csv_file(input_csv, output_folder):
         resource_type = os.path.splitext(os.path.basename(input_csv))[0]
 
         def parse_key_value_pairs(value):
+            if not value or value.lower() in ["none", ""]:
+                return {}  # Return empty dictionary for empty or none values
             pairs = value.split(";")
             return {k.strip(): v.strip() for pair in pairs for k, v in [pair.split(":")]}
 
         def parse_zones(value):
             if not value or value.lower() in ["none", ""]:
-                return []
+                return []  # Return empty list for empty or none values
             return [zone.strip() for zone in value.split(";") if zone.strip()]
 
-        try:
-            with open(input_csv, 'r', newline='', encoding='utf-8') as f:
-                reader = csv.DictReader(f)
+        with open(input_csv, 'r', newline='', encoding='utf-8') as f:
+            reader = csv.DictReader(f)
 
-                if "subscription_id" not in reader.fieldnames:
-                    raise KeyError("The CSV file is missing the required 'subscription_id' column.")
+            if "subscription_id" not in reader.fieldnames:
+                raise KeyError("The CSV file is missing the required 'subscription_id' column.")
 
-                for row_number, row in enumerate(reader, start=2):
-                    try:
-                        subscription_id = row["subscription_id"].strip()
-                        if not subscription_id:
-                            raise ValueError(f"Empty 'subscription_id' found at CSV line {row_number}.")
+            for row_number, row in enumerate(reader, start=2):
+                try:
+                    subscription_id = row["subscription_id"].strip()
+                    if not subscription_id:
+                        raise ValueError(f"Empty 'subscription_id' found at CSV line {row_number}.")
 
-                        if subscription_id not in resources_by_subscription:
-                            resources_by_subscription[subscription_id] = []
+                    if subscription_id not in resources_by_subscription:
+                        resources_by_subscription[subscription_id] = []
 
-                        row_with_type = row.copy()
-                        row_with_type["type"] = resource_type
+                    row_with_type = row.copy()
+                    row_with_type["type"] = resource_type
 
+                    # Ensure zones and tags are processed correctly
+                    row_with_type["zones"] = parse_zones(row.get("zones", ""))
+                    row_with_type["tags"] = parse_key_value_pairs(row.get("tags", ""))
+
+                    # Apply additional logic only when type is 'aks'
+                    if resource_type == "aks":
                         # Add global cluster-level fields
                         row_with_type["vnet_subnet_id"] = row["vnet_subnet_id"].strip()
                         row_with_type["service_cidr"] = row["service_cidr"].strip()
@@ -106,44 +113,27 @@ def parse_csv_file(input_csv, output_folder):
                                 }
                             row_with_type["additional_node_pools"] = additional_pools
 
-                        resources_by_subscription[subscription_id].append(row_with_type)
+                    resources_by_subscription[subscription_id].append(row_with_type)
 
-                    except Exception as e:
-                        raise ValueError(f"Error processing row {row_number} in the CSV: {e}")
+                except Exception as e:
+                    raise ValueError(f"Error processing row {row_number} in the CSV: {e}")
 
-        except csv.Error as e:
-            raise ValueError(f"Error parsing the CSV file '{input_csv}': {e}")
-        except Exception as e:
-            raise ValueError(f"Unexpected error reading the CSV file '{input_csv}': {e}")
+        for idx, (subscription_id, resources) in enumerate(resources_by_subscription.items(), start=1):
+            workspace = f"workspace_{idx}"
+            output_file = os.path.join(output_folder, f"resources_{workspace}.tfvars")
 
-        try:
-            if not resources_by_subscription:
-                print("Warning: No valid resources found in the CSV. No tfvars files will be created.")
-            else:
-                for idx, (subscription_id, resources) in enumerate(resources_by_subscription.items(), start=1):
-                    workspace = f"workspace_{idx}"
-                    output_file = os.path.join(output_folder, f"resources_{workspace}.tfvars")
-
-                    try:
-                        with open(output_file, 'w', encoding='utf-8') as f:
-                            f.write(f'subscription_id = "{subscription_id}"\n\n')
-
-                            f.write('resource_definitions = [\n')
-                            for resource in resources:
-                                f.write('  {\n')
-                                for key, value in resource.items():
-                                    if key == "subscription_id":
-                                        continue
-                                    formatted_value = json.dumps(value, indent=2) if isinstance(value, (dict, list)) else json.dumps(value)
-                                    f.write(f'    {key} = {formatted_value},\n')
-                                f.write('  },\n')
-                            f.write(']\n')
-
-                    except IOError as e:
-                        raise IOError(f"Error writing to the output file '{output_file}': {e}")
-
-        except Exception as e:
-            raise e
+            with open(output_file, 'w', encoding='utf-8') as f:
+                f.write(f'subscription_id = "{subscription_id}"\n\n')
+                f.write('resource_definitions = [\n')
+                for resource in resources:
+                    f.write('  {\n')
+                    for key, value in resource.items():
+                        if key == "subscription_id":
+                            continue
+                        formatted_value = json.dumps(value, indent=2) if isinstance(value, (dict, list)) else json.dumps(value)
+                        f.write(f'    {key} = {formatted_value},\n')
+                    f.write('  },\n')
+                f.write(']\n')
 
         print(f"Successfully processed CSV file '{input_csv}' and generated tfvars files in '{output_folder}'.")
 
