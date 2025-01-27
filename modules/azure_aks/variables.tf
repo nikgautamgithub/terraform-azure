@@ -10,11 +10,6 @@ variable "region" {
   type = string
 }
 
-variable "availability_zones" {
-  type    = list(string)
-  default = ["1", "2", "3"]
-}
-
 variable "sku_tier" {
   type = string
 }
@@ -28,6 +23,21 @@ variable "tenant_id" {
   type        = string
 }
 
+variable "vnet_subnet_id" {
+  description = "ID of the existing subnet"
+  type        = string
+}
+
+variable "service_cidr" {
+  description = "Kubernetes service address range"
+  type        = string
+}
+
+variable "dns_service_ip" {
+  description = "Kubernetes DNS service IP address"
+  type        = string
+}
+
 variable "default_node_pool" {
   type = object({
     name            = string
@@ -38,7 +48,21 @@ variable "default_node_pool" {
     os_disk_size_gb = number
     node_labels     = map(string)
     node_taints     = list(string)
+    zones           = list(string)
+    mode            = string
+    os_sku          = string
+    vnet_subnet_id  = string
   })
+
+  validation {
+    condition     = var.default_node_pool.mode == "System"
+    error_message = "The default node pool mode must be 'System'."
+  }
+
+  validation {
+    condition     = contains(["Linux", "Ubuntu"], var.default_node_pool.os_sku)
+    error_message = "The default node pool OS SKU must be either 'Linux' or 'Ubuntu'."
+  }
 }
 
 variable "additional_node_pools" {
@@ -50,5 +74,15 @@ variable "additional_node_pools" {
     os_disk_size_gb = number
     node_labels     = map(string)
     node_taints     = list(string)
+    zones           = list(string)
+    mode            = string
+    os_sku          = string
+    vnet_subnet_id  = string
   }))
+}
+
+variable "tags" {
+  description = "Tags to be applied to the Event Hub Namespace"
+  type        = map(string)
+  default     = {}
 }

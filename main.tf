@@ -27,6 +27,7 @@ locals {
   storage_resources    = [for resource in local.resources : resource if resource.type == "storage"]
   apim_resources       = [for resource in local.resources : resource if resource.type == "apim"]
   sendgrid_resources   = [for resource in local.resources : resource if resource.type == "sendgrid"]
+  eventhub_resources   = [for resource in local.resources : resource if resource.type == "eventhub"]
 }
 
 # Call the VM module
@@ -108,19 +109,41 @@ module "databricks" {
   private_endpoint_subnet_id = each.value.sku == "premium" ? each.value.private_endpoint_subnet_id : null
   tags                       = try(each.value.tags, {})
 }
-# module "aks" {
-#   for_each = { for idx, resource in local.aks_resource : idx => resource }
 
-#   source = "./modules/azure_aks"
+module "aks" {
+  for_each = { for idx, resource in local.aks_resource : idx => resource }
 
-#   cluster_name               = each.value.cluster_name
-#   region                     = each.value.region
-#   resource_group_name        = each.value.resource_group_name
-#   dns_prefix                 = each.value.dns_prefix
-#   kubernetes_version         = each.value.kubernetes_version
+  source = "./modules/azure_aks"
 
-#   tags                       = try(each.value.tags, {})
-# }
+  resource_group_name = each.value.resource_group_name
+  cluster_name        = each.value.cluster_name
+  region              = each.value.region
+  sku_tier            = each.value.sku_tier
+  kubernetes_version  = each.value.kubernetes_version
+  tenant_id           = var.tenant_id
+  vnet_subnet_id      = each.value.vnet_subnet_id
+  service_cidr        = each.value.service_cidr
+  dns_service_ip      = each.value.dns_service_ip
+
+  default_node_pool = {
+    name            = each.value.default_node_pool.name
+    vm_size         = each.value.default_node_pool.vm_size
+    node_count      = each.value.default_node_pool.node_count
+    min_count       = each.value.default_node_pool.min_count
+    max_count       = each.value.default_node_pool.max_count
+    os_disk_size_gb = each.value.default_node_pool.os_disk_size_gb
+    node_labels     = try(each.value.default_node_pool.node_labels, {})
+    node_taints     = try(each.value.default_node_pool.node_taints, [])
+    zones           = try(each.value.default_node_pool.zones, [])
+    mode            = "System"
+    os_sku          = try(each.value.default_node_pool.os_sku, "Linux")
+    vnet_subnet_id  = each.value.default_node_pool.vnet_subnet_id
+  }
+
+  additional_node_pools = try(each.value.additional_node_pools, {})
+
+  tags = try(each.value.tags, {})
+}
 
 module "servicebus" {
   for_each = { for idx, resource in local.servicebus_resource : idx => resource }
@@ -208,5 +231,19 @@ module "logic_app" {
   private_endpoint_name = each.value.private_endpoint_name
   logic_app_subnet_name = each.value.logic_app_subnet_name
   inbound_subnet_name   = each.value.inbound_subnet_name
-  tags                  = try(each.value.tags,{})
+  tags                  = try(each.value.tags, {})
+}
+
+module "azure_event_hub" {
+  for_each = { for idx, resource in local.eventhub_resources : idx => resource }
+
+  source = "./modules/azure_event_hub"
+
+  namespace_name             = each.value.namespace_name
+  resource_group_name        = each.value.resource_group_name
+  location                   = each.value.region
+  pricing_tier               = each.value.pricing_tier
+  throughput_units           = each.value.throughput_units
+  private_endpoint_subnet_id = try(each.value.private_endpoint_subnet_id, null)
+  tags                       = try(each.value.tags, {})
 }
