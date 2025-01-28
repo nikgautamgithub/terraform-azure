@@ -1,0 +1,2 @@
+resource_group_name,server_name,location,key_vault_name,admin_username_secret_name,admin_password_secret_name,tags
+my-rg,sql-server-test-001,uaenorth,my-key-vault-0509,my-secret-username,my-secret-password,"environment:dev,project:test"

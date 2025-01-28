@@ -28,6 +28,7 @@ locals {
   apim_resources       = [for resource in local.resources : resource if resource.type == "apim"]
   sendgrid_resources   = [for resource in local.resources : resource if resource.type == "sendgrid"]
   eventhub_resources   = [for resource in local.resources : resource if resource.type == "eventhub"]
+  sql_server_resources = [for resource in local.resources : resource if resource.type == "sqlserver"]
 }
 
 # Call the VM module
@@ -245,5 +246,19 @@ module "azure_event_hub" {
   pricing_tier               = each.value.pricing_tier
   throughput_units           = each.value.throughput_units
   private_endpoint_subnet_id = try(each.value.private_endpoint_subnet_id, null)
+  tags                       = try(each.value.tags, {})
+}
+
+module "azure_sql_server" {
+  for_each = { for idx, resource in local.sql_server_resources : idx => resource }
+
+  source = "./modules/azure_sql_server"
+
+  server_name                = each.value.server_name
+  resource_group_name        = each.value.resource_group_name
+  location                   = each.value.location
+  key_vault_name             = each.value.key_vault_name
+  admin_username_secret_name = each.value.admin_username_secret_name
+  admin_password_secret_name = each.value.admin_password_secret_name
   tags                       = try(each.value.tags, {})
 }

@@ -14,6 +14,9 @@ relevant_keys = {
     "storage": "storage_account_name",
     "apim": "apim_name",
     "logicapp": "name",
+    "sendgrid": "name",
+    "eventhub": "namespace_name",
+    "sqlserver": "server_name"
 }
 
 # Check if a file path is passed as an argument
