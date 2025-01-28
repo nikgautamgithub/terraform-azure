@@ -1,0 +1,2 @@
+subscription_id,resource_group_name,server_name,location,key_vault_name,admin_username_secret_name,admin_password_secret_name,tags
+6e47c803-d4a0-49b2-9b1f-01500ce57b80,my-rg,sql-server-test-001,uaenorth,my-key-vault-0509,my-secret-username,my-secret-password,"environment:dev;project:test"
