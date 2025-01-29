@@ -16,7 +16,8 @@ relevant_keys = {
     "logicapp": "name",
     "sendgrid": "name",
     "eventhub": "namespace_name",
-    "sqlserver": "server_name"
+    "sqlserver": "server_name",
+    "sqldatabase": "database_name"
 }
 
 # Check if a file path is passed as an argument

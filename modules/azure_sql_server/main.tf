@@ -11,5 +11,9 @@ resource "azurerm_mssql_server" "server" {
   minimum_tls_version                  = "1.2"
   outbound_network_restriction_enabled = false
 
+  identity {
+    type = "SystemAssigned"
+  }
+
   tags = var.tags
 }

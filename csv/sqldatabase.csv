@@ -1,0 +1,2 @@
+subscription_id,database_name,server_id,resource_group_name,location,subnet_id,workload_environment,compute_storage,redundancy,tags
+6e47c803-d4a0-49b2-9b1f-01500ce57b80,adventureworks-db,/subscriptions/6e47c803-d4a0-49b2-9b1f-01500ce57b80/resourceGroups/my-rg/providers/Microsoft.Sql/servers/sql-server-test-001,my-rg,uaenorth,/subscriptions/6e47c803-d4a0-49b2-9b1f-01500ce57b80/resourceGroups/my-rg/providers/Microsoft.Network/virtualNetworks/linux-vnet-01/subnets/subnet-02,prod,GP_Gen5_2,Geo,"environment:production"

@@ -15,20 +15,21 @@ locals {
 
 # Group VM resources
 locals {
-  vm_resources         = [for resource in local.resources : resource if resource.type == "vm"]
-  acr_resources        = [for resource in local.resources : resource if resource.type == "acr"]
-  mi_resources         = [for resource in local.resources : resource if resource.type == "mi"]
-  kv_resource          = [for resource in local.resources : resource if resource.type == "kv"]
-  databricks_resources = [for resource in local.resources : resource if resource.type == "databricks"]
-  aks_resource         = [for resource in local.resources : resource if resource.type == "aks"]
-  servicebus_resource  = [for resource in local.resources : resource if resource.type == "servicebus"]
-  logicapp_resource    = [for resource in local.resources : resource if resource.type == "logicapp"]
-  df_resources         = [for resource in local.resources : resource if resource.type == "df"]
-  storage_resources    = [for resource in local.resources : resource if resource.type == "storage"]
-  apim_resources       = [for resource in local.resources : resource if resource.type == "apim"]
-  sendgrid_resources   = [for resource in local.resources : resource if resource.type == "sendgrid"]
-  eventhub_resources   = [for resource in local.resources : resource if resource.type == "eventhub"]
-  sql_server_resources = [for resource in local.resources : resource if resource.type == "sqlserver"]
+  vm_resources           = [for resource in local.resources : resource if resource.type == "vm"]
+  acr_resources          = [for resource in local.resources : resource if resource.type == "acr"]
+  mi_resources           = [for resource in local.resources : resource if resource.type == "mi"]
+  kv_resource            = [for resource in local.resources : resource if resource.type == "kv"]
+  databricks_resources   = [for resource in local.resources : resource if resource.type == "databricks"]
+  aks_resource           = [for resource in local.resources : resource if resource.type == "aks"]
+  servicebus_resource    = [for resource in local.resources : resource if resource.type == "servicebus"]
+  logicapp_resource      = [for resource in local.resources : resource if resource.type == "logicapp"]
+  df_resources           = [for resource in local.resources : resource if resource.type == "df"]
+  storage_resources      = [for resource in local.resources : resource if resource.type == "storage"]
+  apim_resources         = [for resource in local.resources : resource if resource.type == "apim"]
+  sendgrid_resources     = [for resource in local.resources : resource if resource.type == "sendgrid"]
+  eventhub_resources     = [for resource in local.resources : resource if resource.type == "eventhub"]
+  sql_server_resources   = [for resource in local.resources : resource if resource.type == "sqlserver"]
+  sql_database_resources = [for resource in local.resources : resource if resource.type == "sqldatabase"]
 }
 
 # Call the VM module
@@ -261,4 +262,21 @@ module "azure_sql_server" {
   admin_username_secret_name = each.value.admin_username_secret_name
   admin_password_secret_name = each.value.admin_password_secret_name
   tags                       = try(each.value.tags, {})
+}
+
+module "azure_sql_database" {
+  for_each = { for idx, resource in local.sql_database_resources : idx => resource }
+
+  source = "./modules/azure_sql_database"
+
+  subscription_id      = var.subscription_id
+  database_name        = each.value.database_name
+  server_id            = each.value.server_id
+  resource_group_name  = each.value.resource_group_name
+  location             = each.value.location
+  subnet_id            = each.value.subnet_id
+  workload_environment = each.value.workload_environment
+  compute_storage      = each.value.compute_storage
+  redundancy           = each.value.redundancy
+  tags                 = try(each.value.tags, {})
 }
