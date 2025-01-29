@@ -30,6 +30,7 @@ locals {
   eventhub_resources     = [for resource in local.resources : resource if resource.type == "eventhub"]
   sql_server_resources   = [for resource in local.resources : resource if resource.type == "sqlserver"]
   sql_database_resources = [for resource in local.resources : resource if resource.type == "sqldatabase"]
+  appservice_resource    = [for resource in local.resources : resource if resource.type == "appservice"]
 }
 
 # Call the VM module
@@ -278,4 +279,30 @@ module "azure_sql_database" {
   compute_storage      = each.value.compute_storage
   redundancy           = each.value.redundancy
   tags                 = try(each.value.tags, {})
+}
+
+module "app_services" {
+  for_each = { for idx, resource in local.appservice_resource : idx => resource }
+
+  source = "./modules/azure_app_service"
+
+  subscription_id            = var.subscription_id
+  name                       = each.value.name
+  resource_group_name        = each.value.resource_group_name
+  region                     = each.value.region
+  publish                    = each.value.publish
+  os_type                    = try(each.value.os_type, "Linux")
+  pricing_plan               = each.value.pricing_plan
+  runtime_stack              = each.value.runtime_stack
+  runtime_version            = each.value.runtime_version
+  docker_image               = try(each.value.docker_image, null)
+  docker_registry_url        = try(each.value.docker_registry_url, null)
+  docker_registry_username   = try(each.value.docker_registry_username, null)
+  docker_registry_password   = try(each.value.docker_registry_password, null)
+  java_server                = try(each.value.java_server, null)
+  java_server_version        = try(each.value.java_server_version, null)
+  vnet_integration_subnet_id = try(each.value.app_service_subnet, null)
+  private_endpoint_name      = try(each.value.private_endpoint_name, null)
+  pe_subnet_id               = try(each.value.pe_subnet_id, null)
+  tags                       = try(each.value.tags, {})
 }

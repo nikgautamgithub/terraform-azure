@@ -17,7 +17,8 @@ relevant_keys = {
     "sendgrid": "name",
     "eventhub": "namespace_name",
     "sqlserver": "server_name",
-    "sqldatabase": "database_name"
+    "sqldatabase": "database_name",
+    "appservice": "name"
 }
 
 # Check if a file path is passed as an argument
