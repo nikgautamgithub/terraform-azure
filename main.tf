@@ -269,7 +269,6 @@ module "azure_sql_database" {
 
   source = "./modules/azure_sql_database"
 
-  subscription_id      = var.subscription_id
   database_name        = each.value.database_name
   server_id            = each.value.server_id
   resource_group_name  = each.value.resource_group_name

@@ -8,16 +8,7 @@ resource "azurerm_mssql_database" "sql_db" {
   elastic_pool_id      = null
   sku_name             = var.compute_storage
   storage_account_type = var.redundancy
-
-  threat_detection_policy {
-    state                = "Enabled"
-    email_account_admins = true
-    email_addresses      = []
-    retention_days       = 7
-    disabled_alerts      = []
-  }
-
-  tags = var.tags
+  tags                 = var.tags
 }
 
 resource "azurerm_private_endpoint" "sql_pe" {
@@ -32,4 +23,6 @@ resource "azurerm_private_endpoint" "sql_pe" {
     is_manual_connection           = false
     subresource_names              = ["sqlServer"]
   }
+
+  depends_on = [azurerm_mssql_database.sql_db]
 }
