@@ -32,6 +32,7 @@ locals {
   sql_database_resources = [for resource in local.resources : resource if resource.type == "sqldatabase"]
   appservice_resource    = [for resource in local.resources : resource if resource.type == "appservice"]
   containerapp_resource  = [for resource in local.resources : resource if resource.type == "containerapp"]
+  synapse_resources      = [for resource in local.resources : resource if resource.type == "synapse"]
 }
 
 # Call the VM module
@@ -331,4 +332,17 @@ module "container_app" {
   memory                     = each.value.memory
 
   tags = try(each.value.tags, {})
+}
+
+module "synapse_workspace" {
+  for_each = { for idx, resource in local.synapse_resources : idx => resource }
+
+  source = "./modules/azure_synapse_workspace"
+
+  resource_group_name = each.value.resource_group_name
+  workspace_name      = each.value.workspace_name
+  location            = each.value.location
+  account_name        = each.value.account_name
+  filesystem_name     = each.value.filesystem_name
+  tags                = try(each.value.tags, {})
 }

@@ -1,0 +1,2 @@
+subscription_id,resource_group_name,workspace_name,location,account_name,filesystem_name,tags
+6e47c803-d4a0-49b2-9b1f-01500ce57b80,my-rg,synapse-workspace,uaenorth,bondastorage,terrformstatecontainer,"environment:production;owner:admin"

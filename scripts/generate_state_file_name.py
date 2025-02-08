@@ -18,7 +18,9 @@ relevant_keys = {
     "eventhub": "namespace_name",
     "sqlserver": "server_name",
     "sqldatabase": "database_name",
-    "appservice": "name"
+    "appservice": "name",
+    "containerapp": "container_app_name",
+    "synapse": "workspace_name",
 }
 
 # Check if a file path is passed as an argument
