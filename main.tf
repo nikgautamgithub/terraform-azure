@@ -31,6 +31,7 @@ locals {
   sql_server_resources   = [for resource in local.resources : resource if resource.type == "sqlserver"]
   sql_database_resources = [for resource in local.resources : resource if resource.type == "sqldatabase"]
   appservice_resource    = [for resource in local.resources : resource if resource.type == "appservice"]
+  containerapp_resource  = [for resource in local.resources : resource if resource.type == "containerapp"]
 }
 
 # Call the VM module
@@ -305,4 +306,29 @@ module "app_services" {
   private_endpoint_name      = try(each.value.private_endpoint_name, null)
   pe_subnet_id               = try(each.value.pe_subnet_id, null)
   tags                       = try(each.value.tags, {})
+}
+
+module "container_app" {
+  for_each = { for idx, resource in local.containerapp_resource : idx => resource }
+
+  source = "./modules/azure_container_app"
+
+  resource_group_name        = each.value.resource_group_name
+  container_app_name         = each.value.container_app_name
+  location                   = each.value.location
+  container_app_env_name     = each.value.container_app_env_name
+  zone_redundancy_enabled    = each.value.zone_redundancy_enabled
+  logs_destination           = each.value.logs_destination
+  workload_profile           = each.value.workload_profile
+  workload_profile_max_count = each.value.workload_profile_max_count
+  workload_profile_min_count = each.value.workload_profile_min_count
+  subnet_id                  = each.value.subnet_id
+  container_name             = each.value.container_name
+  registry_server            = each.value.registry_server
+  image                      = each.value.image
+  image_tag                  = each.value.image_tag
+  cpu                        = each.value.cpu
+  memory                     = each.value.memory
+
+  tags = try(each.value.tags, {})
 }
